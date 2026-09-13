@@ -1,0 +1,4 @@
+# References (llms.txt style) — agent đọc khi cần sâu
+- pandas asof join: dùng `merge_asof`, không `shift(-N)`.
+- duckdb point-in-time: `WHERE ts <= $t ORDER BY ts`.
+- pydantic v2: parse at boundary, `model_validate`.

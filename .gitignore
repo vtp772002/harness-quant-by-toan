@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+*.pyc
+runs/
+*.parquet
+*.duckdb
+.worktree-id
+target/

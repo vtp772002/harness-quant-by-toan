@@ -1,0 +1,7 @@
+[package]
+name = "quant-core"
+version = "0.1.0"
+edition = "2021"
+
+# Zero dependencies — std only. Boundary voi Python la CSV (boring, inspectable).
+# Determinism: moi phep toan f64 IEEE, thu tu lap sort truoc, khong clock, khong thread.

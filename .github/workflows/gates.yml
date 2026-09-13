@@ -1,0 +1,24 @@
+name: harness-gates
+on: [push, pull_request]
+jobs:
+  blocking: # minimal blocking gates — merge nhanh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install -e ".[dev]" 2>/dev/null || pip install pydantic pandas numpy duckdb pyarrow pytest
+      - run: python linters/run_all.py
+      - run: pytest tests/ -x -q
+  full-eval: # non-blocking: walk-forward + stress (nightly hoặc label full-eval)
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'full-eval')
+    steps:
+      - uses: actions/checkout@v4
+      - run: pytest evals/ -q
+  doc-garden: # stale docs check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python scripts/doc-garden.py --scan
+      - run: python scripts/gc-scan.py

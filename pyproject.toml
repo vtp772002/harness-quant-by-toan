@@ -1,0 +1,16 @@
+[project]
+name = "quant-harness"
+version = "0.1.0"
+description = "Agent-first harness for AI quant research (Harness Engineering by OpenAI, adapted)"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.0",
+  "pandas>=2.0",
+  "numpy>=1.26",
+  "duckdb>=0.10",
+  "pyarrow>=14.0",
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "evals"]
