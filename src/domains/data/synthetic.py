@@ -1,5 +1,7 @@
-"""Synthetic market — deterministic, co survivorship-stress + 1 split.
-Chi dung cho harness smoke / eval dev. PASS o day = plumbing dung, khong phai alpha that.
+"""Deterministic synthetic market with survivorship stress and one split.
+
+This is only for harness smoke tests and evaluation development. A PASS proves
+that the plumbing works, not that the alpha is real.
 """
 from __future__ import annotations
 

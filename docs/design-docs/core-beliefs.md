@@ -1,12 +1,21 @@
-# Core Beliefs — agent-first (adapted tu OpenAI Harness Engineering)
+# Core Beliefs — Agent-First (Adapted from OpenAI Harness Engineering)
 
-1. Humans steer, agents execute. Nguoi viet prompt + acceptance criteria, agent viet moi dong code.
-2. Legibility > cleverness. Code phai de agent 6 thang sau reason duoc tu repo only.
-3. Map, not manual. AGENTS.md la muc luc; chi tiet progressive disclosure trong docs/.
-4. Invariants enforced, implementations free. Linter giu bien; trong bien agent tu do.
-5. No lookahead, always. Feature vi pham point-in-time la bug P0 du Sharpe cao.
-6. Determinism la correctness. Khong tai lap byte-identical = khong merge.
-7. Costs + risk in code. Backtest thieu fee/slippage hoac risk chi trong docs = invalid.
-8. Throughput wins. PR ngan, merge nhanh, corrections cheap. Flake -> follow-up, khong block.
-9. Entropy compounds. Golden principles + garbage collection hang ngay.
-10. Boring tech. Uu tien thu agent model duoc: pydantic, pandas, duckdb, stdlib.
+1. Humans steer, agents execute. Humans write prompts and acceptance criteria;
+   agents implement the code.
+2. Legibility beats cleverness. An agent six months later should be able to
+   reason from the repository alone.
+3. Map, not manual. `AGENTS.md` is a map; detailed guidance is progressively
+   disclosed through `docs/`.
+4. Enforce invariants, keep implementations free. Linters hold the boundary;
+   agents choose the implementation inside it.
+5. No lookahead, ever. A point-in-time violation is a P0 bug even when Sharpe is
+   high.
+6. Determinism is correctness. If a run cannot be reproduced byte-for-byte, it
+   does not merge.
+7. Costs and risk belong in code. A backtest that models neither costs nor risk
+   in code is invalid.
+8. Throughput wins. Small PRs, fast merges, and cheap corrections are preferred.
+   Flaky results get follow-up runs rather than silent acceptance.
+9. Entropy compounds. Garbage-collect stale docs and enforce golden principles.
+10. Prefer boring technology: Pydantic, pandas, DuckDB, and the standard
+    library are easier for agents to model.

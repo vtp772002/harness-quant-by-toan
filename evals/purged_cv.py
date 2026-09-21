@@ -1,5 +1,7 @@
-"""Purged-embargo K-fold cho time series. Don gian, legible, deterministic.
-Test fold la khoi lien tuc; train loai bo purge bars quanh test + embargo bars sau test.
+"""Purged-embargo K-fold splits for time series.
+
+The test fold is contiguous. Training removes purge bars around the test fold
+and embargo bars after it.
 """
 from __future__ import annotations
 

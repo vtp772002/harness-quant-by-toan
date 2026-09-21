@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Boot môi trường isolated per-worktree (tương đương "app bootable per git worktree" của OpenAI).
-# Mỗi worktree/agent có QUANT_RUN_ID riêng + stack logs/metrics/traces riêng, teardown sau task.
+# Boot an isolated environment per worktree, similar to an app bootable per Git worktree.
+# Each worktree/agent gets its own QUANT_RUN_ID and logs/metrics/traces stack.
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BRANCH=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || true)

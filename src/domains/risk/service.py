@@ -1,4 +1,4 @@
-"""Risk in code, not docs — vuot RISK_LIMITS.md phai raise."""
+"""Risk belongs in code, not docs; limits must raise."""
 from __future__ import annotations
 
 MAX_POSITION = 1000.0

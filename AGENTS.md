@@ -1,68 +1,123 @@
-# AGENTS.md — Table of Contents (not an encyclopedia)
+# AGENTS.md — Quant Research Harness Guide
 
-> Nguyen tac Harness Engineering (OpenAI, Feb 2026): humans steer, agents execute.
-> File nay la **muc luc ~100 dong**. Chi tiet song trong `docs/` (system of record).
-> Agent: start nho, progressive disclosure — chi doc sau khi can.
+> Humans steer, agents execute. This file is a map, not an encyclopedia.
+> Detailed policy lives in `docs/`, which is the repository system of record.
+> Use progressive disclosure: read only the documents required for the task.
 
-## 1. Vai tro cua ban
-Ban la **Quant Research Agent** chay trong harness nay. Ban khong viet code tu do —
-ban lam viec qua prompts → PRs ngan → tu review (Ralph Wiggum Loop) → merge.
-Khi stuck, dung "try harder". Hay hoi: "capability nao con thieu, lam sao de no
-legible + enforceable cho agent?" roi de xuat fix vao harness.
+## 1. Agent role
 
-## 2. Map — doc gi truoc?
-| Muon lam gi | Doc o dau |
+You are the Quant Research Agent operating inside this harness. Work through
+small, reviewable changes: establish the authority, write an execution plan
+when needed, implement, validate, and leave durable evidence in the repository.
+
+When blocked, do not merely try harder. Ask which capability is missing and how
+it can become legible and enforceable for the next agent. Propose a guard,
+test, or decision record when the missing capability is systemic.
+
+## 2. Read this first
+
+| Task | Source of truth |
 |---|---|
-| Hieu kien truc layer | `ARCHITECTURE.md` |
-| Niem tin cot loi agent-first | `docs/design-docs/core-beliefs.md` |
-| Spec san pham / chien luoc | `docs/product-specs/index.md` |
-| Plan dang chay / xong / no KT | `docs/exec-plans/active/`, `completed/`, `tech-debt-tracker.md` |
-| Chuan chat luong tung domain | `docs/QUALITY_SCORE.md` |
-| Chuan tai lap + no-lookahead | `docs/REPRODUCIBILITY.md`, `docs/NO_LOOKAHEAD.md` |
-| Gioi han rui ro (enforced) | `docs/RISK_LIMITS.md` |
-| Cach danh gia chien luoc | `docs/EVALUATION.md` |
-| Schema DB sinh tu dong | `docs/generated/db-schema.md` |
-| Reference thu vien (llms.txt) | `docs/references/` |
-| Security / reliability | `docs/SECURITY.md`, `docs/RELIABILITY.md` |
-| Quyet dinh da chot (ADR) | `docs/decisions/` |
-| Scorecard suc khoe harness | `bash scripts/quant-harness.sh check --seed 42` |
-| Rust control-plane | `scripts/quant-harness.sh` / `scripts/quant-harness.ps1` |
-| Curl bootstrap | `scripts/install-quant-harness.sh` |
-| Skills (invariant, improve) | `.agents/skills/` |
+| Understand the layer architecture | `ARCHITECTURE.md` |
+| Understand the agent-first principles | `docs/design-docs/core-beliefs.md` |
+| Write a research specification | `docs/product-specs/index.md` |
+| Track active, completed, and deferred work | `docs/exec-plans/` and `docs/PLANS.md` |
+| Check domain quality and known gaps | `docs/QUALITY_SCORE.md` |
+| Check reproducibility and lookahead rules | `docs/REPRODUCIBILITY.md`, `docs/NO_LOOKAHEAD.md` |
+| Check enforced risk limits | `docs/RISK_LIMITS.md` |
+| Understand the evaluation gate | `docs/EVALUATION.md` |
+| Inspect the generated schema | `docs/generated/db-schema.md` |
+| Find library references | `docs/references/` |
+| Review security and reliability rules | `docs/SECURITY.md`, `docs/RELIABILITY.md` |
+| Review accepted decisions | `docs/decisions/` |
+| Run the repository contract | `scripts/quant-harness.sh check --seed 42` |
+| Use the Rust control plane | `scripts/quant-harness.sh`, `scripts/quant-harness.ps1` |
+| Bootstrap into another repository | `scripts/install-quant-harness.sh` |
+| Inspect reusable skills | `skills/` and `.agents/skills/` |
 
-## 3. Kien truc bat buoc (enforced by linters)
-Moi domain (`data`, `alpha`, `backtest`, `risk`, `portfolio`) chi duoc phu thuoc
-**forward** qua layers: `Types → Config → Repo → Service → Runtime → Reports`.
-Cross-cutting (`telemetry`, `data_vendor`, `exchange_sim`) chi di qua **Providers**.
-Vi pham = CI fail. Xem `ARCHITECTURE.md`.
+For the shortest user-facing path, start with `README.md`.
 
-## 4. Golden Principles (mechanical, garbage-collected)
-1. **Shared utils over hand-rolled helpers.**
-2. **No YOLO probing** — parse at boundary bang Pydantic.
-3. **No lookahead** — feature point-in-time; `asof <= t`. Linter `no_lookahead` fail neu thay `.shift(-`, `future`, `lead(`.
-4. **Determinism** — seeded RNG, khong `time.now()`. Cung seed → byte-identical.
-5. **Costs always modeled** — backtest thieu fee+slippage = invalid.
-6. **Risk in code, not docs** — vuot `RISK_LIMITS.md` phai raise.
+## 3. Enforced architecture
 
-## 5. Workflow chuan
-1. `bash scripts/worktree-boot.sh` — boot moi truong isolated per-worktree.
-2. Viet **exec-plan** nhe vao `docs/exec-plans/active/<ten>.md` (neu task >30p).
-3. Implement → `PYTHONPATH=. python scripts/run-backtest.py --seed 42` → query logs/metrics.
-4. Tu review local: `python linters/run_all.py`, `PYTHONPATH=. pytest -x -q`.
-5. Mo PR ngan (<400 lines), loop toi khi agent-reviewers pass. Merge nhanh.
+Each quant domain (`data`, `alpha`, `backtest`, `risk`, `portfolio`) may only
+depend forward through:
 
-## 6. Observability legible cho agent
-Moi worktree co stack rieng: `runs/<id>/logs.jsonl`, `metrics.jsonl`, `traces.jsonl`.
-Khong doc Slack/Google Docs — moi thu phai encode thanh markdown/parquet trong repo.
+```text
+Types → Config → Repo → Service → Runtime → Reports
+```
 
-## 7. Khi docs thoi (entropy)
-Chay `python scripts/doc-garden.py --scan`. Tech-debt moi → append vao tech-debt-tracker.md.
+Cross-cutting capabilities (`telemetry`, `data_vendor`, `exchange_sim`,
+`clock`, and `llm`) must pass through provider interfaces. Violations fail the
+layering linter. See `ARCHITECTURE.md` before introducing a new dependency.
 
-## 8. Cam
-- Khong them dependency "thu vi" neu ban boring trong `utils/` lam duoc.
-- Khong file >500 dong, khong function >50 dong (linter `taste`).
-- Khong merge neu `no_lookahead` hoac `determinism` fail (blocking).
+## 4. Golden principles
 
-## 9. Judgment boundaries (decision 0001)
-Dung truoc mutation khi lua chon material con mo — trinh choice + consequence, doi human.
-Configurable defaults khong phai authority. Khong tu che product policy.
+These principles are enforced mechanically where possible:
+
+1. Prefer shared utilities over hand-rolled helpers.
+2. Parse at boundaries with Pydantic; do not use YOLO probing.
+3. Enforce point-in-time features: `asof <= t`. The no-lookahead linter rejects
+   patterns such as `.shift(-`, `future`, and `lead(`.
+4. Make runs deterministic: use seeded RNGs and keep uncontrolled clocks out of
+   research logic.
+5. Always model costs. A backtest without fees and slippage is invalid.
+6. Put risk in code. Breaching `RISK_LIMITS.md` must raise, not merely warn.
+7. A new rule needs a guard plus positive and negative proof; prose alone is not
+   an invariant.
+
+## 5. Standard workflow
+
+1. Run `bash scripts/worktree-boot.sh` when an isolated worktree is needed.
+2. For work longer than 30 minutes, create
+   `docs/exec-plans/active/<name>.md` before implementation.
+3. Implement within the layer contract and preserve the Python reference oracle
+   when changing Rust numerical code.
+4. Run `scripts/quant-harness.sh check --seed 42` as the canonical validation.
+5. For focused checks, run `python linters/run_all.py` and
+   `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. pytest tests/ evals/ -q -p no:cacheprovider`.
+6. Review the diff, run `python scripts/doc-garden.py --scan`, and keep the PR
+   small enough to review quickly.
+
+Python commands require `PYTHONPATH=.`. The check command disables auto-loaded
+pytest plugins so results do not depend on unrelated global plugins.
+
+## 6. Runtime and backend contract
+
+Python owns research orchestration, the evaluation gate, DSR, and the reference
+implementation. Rust owns the control plane and the deterministic hot-loop
+backtest. The CSV boundary is deliberate: it is inspectable, portable, and
+allows cross-language conformance tests.
+
+Use `--backend auto` for the normal CLI path, `--backend rust` to fail closed
+when the Rust release binary is missing, and `--backend python` to run the
+reference oracle explicitly. Never delete the reference implementation merely
+because the Rust path is faster.
+
+## 7. Evidence and observability
+
+Every worktree has a run-local observability stack:
+`runs/<id>/manifest.json`, `logs.jsonl`, `metrics.jsonl`, and `traces.jsonl`.
+Record seeds, Git SHA, configuration, backend identity, and relevant metrics.
+Do not rely on Slack or private chat as system-of-record material; encode
+decisions and evidence as Markdown, JSON, or Parquet in the repository.
+
+## 8. Documentation hygiene
+
+Run `python scripts/doc-garden.py --scan` when documentation changes. Add new
+technical debt to `docs/exec-plans/tech-debt-tracker.md`. Keep `README.md` as a
+user-oriented entry point and keep detailed policy in the linked documents.
+
+## 9. Constraints
+
+- Do not add a dependency when a boring shared utility is sufficient.
+- Keep files below 500 lines and functions below 50 lines unless an explicit
+  decision record justifies an exception.
+- Do not merge while `no_lookahead` or `determinism` is failing.
+- Do not add live trading, broker credentials, or product policy by inference.
+
+## 10. Judgment boundaries
+
+Before a mutation, identify the document or decision that grants authority. If
+a material choice remains open and changes observable behavior, stop and present
+the concrete options and consequences to the human. Configurable defaults are
+not authority. This rule is recorded in decision `0001`.

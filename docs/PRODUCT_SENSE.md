@@ -1,3 +1,6 @@
-# PRODUCT_SENSE — quant
-Người dùng là PM/researcher. Họ cần: tái lập 1-click, số sau costs, kill-criteria rõ.
-Mọi strategy không có kill-criteria số hoá = chưa ship.
+# PRODUCT_SENSE — Quant Research
+
+The users are product managers and researchers. They need one-command
+reproduction, metrics after costs, and explicit kill criteria.
+
+A strategy without numeric kill criteria is not ready to ship.

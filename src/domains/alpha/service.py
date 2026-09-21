@@ -1,11 +1,11 @@
-"""Alpha service — PURE + point-in-time. Chi trailing window, khong nhin truoc."""
+"""Pure point-in-time alpha service using only a trailing window."""
 from __future__ import annotations
 import pandas as pd
 from src.domains.alpha.config import AlphaConfigModel
 
 
 def momentum_signal(bars_asof: pd.DataFrame, cfg: AlphaConfigModel) -> float:
-    """bars_asof da filter ts<=t o repo. Chi dung trailing window."""
+    """`bars_asof` is filtered to `ts<=t` by the repository."""
     if len(bars_asof) < cfg.lookback + 1:
         return 0.0
     window = bars_asof.tail(cfg.lookback + 1)

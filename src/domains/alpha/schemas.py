@@ -1,5 +1,8 @@
-"""Schemas cho agent layer — moi output agent phai validate Pydantic truoc khi di tiep.
-So lieu do tools deterministic sinh; LLM chi duoc them narrative/confidence, khong doi so.
+"""Agent-layer schemas.
+
+Every agent output is validated by Pydantic before it moves forward. Numeric
+values come from deterministic tools; the LLM may add narrative and confidence
+but must not change the numbers.
 """
 from __future__ import annotations
 from datetime import datetime
@@ -46,7 +49,7 @@ class TrendReport(BaseModel):
 
 
 class Proposal(BaseModel):
-    """De xuat duy nhat agent duoc phat ra — gate quyet thang/thua, khong phai proposal."""
+    """The only agent proposal; the gate decides success or failure."""
     symbol: str
     ts: datetime
     asof: datetime

@@ -1,4 +1,4 @@
-"""Query logs kiểu LogQL-boring: python scripts/query-logs.py --filter level=ERROR"""
+"""Query logs using a boring LogQL-like interface."""
 from __future__ import annotations
 import argparse, json, os
 from pathlib import Path

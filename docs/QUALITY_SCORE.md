@@ -1,11 +1,16 @@
-# QUALITY_SCORE — grades per domain/layer, garbage-collected daily
+# QUALITY_SCORE — Grades Per Domain and Layer
+
+Grades are evidence-backed snapshots and should be refreshed as the harness
+changes. Known gaps are tracked explicitly rather than hidden behind a grade.
+
 | Domain | Grade | Gap |
 |---|---|---|
-| data | B+ | thiếu duckdb prod repo |
-| alpha | A- | tools + reports + proposals xong; gap: live LLM validation |
-| backtest | A- | regime costs xong, can slippage stochastic |
-| evals | A- | gate PASS seed 42 (margin lon), multi-seed 5/7 — xem honest-eval.md |
-| risk | A | enforced raise |
-| portfolio | C+ | sizing còn naive |
+| data | B+ | production DuckDB repository is still missing |
+| alpha | A- | tools, reports, and proposals are complete; live LLM validation remains |
+| backtest | A- | regime costs are complete; stochastic slippage remains |
+| evals | A- | seed 42 has a wide PASS margin; multi-seed result is 5/7 — see `honest-eval.md` |
+| risk | A | enforced exceptions |
+| portfolio | C+ | position sizing is still naive |
 
-Agent `quality-grade` quét deviations, mở PR refactor nhỏ (<1min review).
+The `quality-grade` agent scans deviations and opens small refactoring PRs that
+should take less than one minute to review.

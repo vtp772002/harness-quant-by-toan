@@ -1,6 +1,7 @@
-"""Agent pipeline 4 buoc: indicator -> pattern -> trend -> decision. Tuan tu, deterministic.
-Rules-v1 la fallback va source of truth cho so lieu. LLM (neu co) chi them narrative —
-proposal cua LLM van phai qua schema validation + gate nhu moi proposal khac.
+"""Deterministic four-step agent pipeline: indicator, pattern, trend, decision.
+
+Rules-v1 is the fallback and numeric source of truth. An LLM may add narrative,
+but its proposal still goes through schema validation and the same gate.
 """
 from __future__ import annotations
 import pandas as pd
@@ -77,7 +78,7 @@ def _rules_proposal(symbol: str, bars_asof: pd.DataFrame, i: IndicatorReport,
 
 def run_pipeline(bars_asof: pd.DataFrame, symbol: str,
                  provider: LLMProvider | None = None) -> Proposal:
-    """Chay 4 buoc. Co provider → LLM de xuat (da validate); khong → rules-v1."""
+    """Run four steps; use a validated LLM proposal or the rules-v1 fallback."""
     i = indicator_step(bars_asof, symbol)
     p = pattern_step(bars_asof, symbol)
     t = trend_step(bars_asof, symbol)
@@ -86,5 +87,5 @@ def run_pipeline(bars_asof: pd.DataFrame, symbol: str,
     ctx = ProposalContext(symbol=symbol, ts=i.ts, asof=i.asof,
                           indicator=i, pattern=p, trend=t)
     proposal = provider.propose(ctx)
-    assert proposal.asof <= proposal.ts, "LLM proposal vi pham asof<=ts"
+    assert proposal.asof <= proposal.ts, "LLM proposal violates asof<=ts"
     return proposal

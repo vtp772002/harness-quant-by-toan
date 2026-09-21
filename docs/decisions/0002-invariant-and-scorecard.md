@@ -1,22 +1,24 @@
-# 0002 — Moi rule phai co guard + scorecard hanh vi
+# 0002 — Every Rule Needs a Guard and Behavioral Scorecard
 
-- Ngay: 2026-09-13. Trang thai: accepted.
-- Cam hung: harness-by-victoria (encode-invariant skill + evaluate-harness.sh).
+- Date: 2026-09-13. Status: accepted.
+- Inspired by harness-by-victoria (`encode-invariant` and harness evaluation).
 
 ## Context
-Docs da co nhieu chuan (NO_LOOKAHEAD, REPRODUCIBILITY, RISK_LIMITS) nhung chi
-linter + pytest moi bien chung thanh luat that. Can mot hop dong統一 cho moi rule moi.
+The repository has many standards (`NO_LOOKAHEAD`, `REPRODUCIBILITY`, and
+`RISK_LIMITS`), but only linters and tests turn them into enforceable rules. A
+common contract is needed for every new rule.
 
-## Quyet dinh
-1. Rule moi chi duoc chap nhan khi di kem: guard co hoc (linter/test, nam trong owner
-   hien co — khong dung framework song song), positive proof + negative proof,
-   diagnostic neu ro item vi pham + cach sua. Theo skill `.agents/skills/encode-invariant/`.
-2. Scorecard `scripts/evaluate-quant-harness.py` la thuoc do suc khoe harness,
-   output JSON versioned (`quant-scorecard-v1`), chay local + CI. That bai o case
-   blocking = khong merge.
-3. Khong suy policy tu convention/code cu. Check cu khong co authority la mismatch
-   can bao cao, khong phai co so mo rong.
+## Decision
+1. A new rule is accepted only with an executable guard (a linter or test owned
+   by the existing framework), positive and negative proof, and a diagnostic
+   that identifies the violation and fix. See
+   `.agents/skills/encode-invariant/`.
+2. `scripts/evaluate-quant-harness.py` is the harness health measure. It emits
+   versioned JSON (`quant-scorecard-v1`) for local and CI use. A blocking case
+   failure prevents merge.
+3. Do not infer policy from old conventions or code. An old check without
+   authority is a mismatch to report, not a basis for expansion.
 
-## He qua
-- Them rule = them guard + proof, khong phai them doan van.
-- Scorecard thay cho cam giac "harness chac on" bang so lieu.
+## Consequences
+- Adding a rule means adding a guard and proof, not another paragraph.
+- The scorecard replaces the feeling that the harness is healthy with evidence.

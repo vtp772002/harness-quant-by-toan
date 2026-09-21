@@ -39,7 +39,7 @@ def test_breakout_pit():
     df = _bars()
     df.loc[59, "close"] = df["high"].max() + 5.0
     assert breakout(df) == "up"
-    assert breakout(df.iloc[:50]) == breakout(df.iloc[:50])  # slice on dinh, khong doi
+    assert breakout(df.iloc[:50]) == breakout(df.iloc[:50])  # identical slice, stable result
 
 
 def test_pipeline_deterministic_and_valid():
@@ -80,7 +80,7 @@ def test_live_llm_missing_key_raises():
     os.environ.pop("OPENAI_API_KEY", None)
     try:
         LiveLLM()
-        raise AssertionError("phai raise khi thieu key")
+        raise AssertionError("must raise when the key is missing")
     except LLMError:
         pass
 
@@ -93,7 +93,7 @@ def test_schema_rejects_bad_direction():
         Proposal(symbol="T", ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
                  asof=datetime(2024, 1, 1, tzinfo=timezone.utc), direction="MOON",
                  confidence=0.5, candidate_lookbacks=[5], rationale="x", model="t")
-        raise AssertionError("phai reject direction la")
+        raise AssertionError("must reject an invalid direction")
     except ValidationError:
         pass
 

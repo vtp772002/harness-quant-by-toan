@@ -1,2 +1,4 @@
 # Active Plans
-(No active plans — agent tạo file <ten>.md khi task >30p.)
+
+There are currently no active plans. Create `<name>.md` here for work expected
+to take more than 30 minutes.

@@ -14,7 +14,7 @@ class Bar(BaseModel):
 
 
 class Listing(BaseModel):
-    """Thanh vien universe la ham cua t — chong survivorship bias."""
+    """Universe membership is a function of `t`, preventing survivorship bias."""
     symbol: str
     list_ts: datetime
     delist_ts: datetime | None = None

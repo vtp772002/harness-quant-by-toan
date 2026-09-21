@@ -1,4 +1,4 @@
-"""Tests cho honest-eval stack: PIT universe, splits, purged gaps, DSR, costs, gate."""
+"""Tests for the honest-evaluation stack: PIT universe, splits, gaps, DSR, costs, and gate."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

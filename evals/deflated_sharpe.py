@@ -1,6 +1,8 @@
-"""Deflated Sharpe Ratio (Bailey & Lopez de Prado, 2014). Thuan, deterministic.
-Tu viet Phi / Phi_inv (erf + Acklam) de giu boring deps — khong them scipy.
-Moi thu o tan suat quan sat (daily): sr_hat la daily Sharpe, t la so returns.
+"""Deflated Sharpe Ratio (Bailey and Lopez de Prado, 2014).
+
+The Phi and inverse-Phi functions use `erf` and Acklam to keep dependencies
+boring and deterministic. All values use the observation frequency (daily):
+`sr_hat` is daily Sharpe and `t` is the number of returns.
 """
 from __future__ import annotations
 

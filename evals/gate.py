@@ -1,5 +1,7 @@
-"""Honest-eval gate: panel momentum + universe PIT + regime costs + purged folds + DSR + stress.
-Chon lookback tren train moi fold (that) — K trials di vao DSR. Deterministic theo seed.
+"""Honest-eval gate with PIT universe, costs, purged folds, DSR, and stress.
+
+Lookback selection happens on train data in every fold, and K trials enter DSR.
+The result is deterministic for a given seed.
 """
 from __future__ import annotations
 
@@ -22,7 +24,7 @@ from evals.deflated_sharpe import deflated_sharpe, return_moments
 CANDIDATE_LOOKBACKS = [5, 10, 20]
 BACKENDS = ("python", "rust", "auto")
 SHARPE_MIN, DSR_MIN, STRESS_MIN, DD_MAX = 0.5, 0.95, 0.0, -0.15
-STRESS_X5_FLOOR = -1.0  # informational: chi block khi am sau (fragile ve co cau, khong phai xui)
+STRESS_X5_FLOOR = -1.0  # informational: block only below the fragile floor
 
 
 def panel_backtest(panel, universe, lookback, cost, stress_m=1.0, initial_cash=1_000_000.0, ref_vol=0.01,
@@ -45,7 +47,7 @@ def panel_backtest(panel, universe, lookback, cost, stress_m=1.0, initial_cash=1
             check_limits(pos[s], target, cash)
             delta = target - pos[s]
             px = float(df.loc[i, "close"])
-            if abs(delta) > min_trade:  # deadband: chi trade khi dich target du lon
+            if abs(delta) > min_trade:  # deadband: trade only for material moves
                 slip, fee = cost.total_bps(float(df.loc[i, "volume"]), trailing_vol(bars_asof) / ref_vol, delta, stress_m)
                 adj = px * (1 + (slip + fee) / 1e4) if delta > 0 else px * (1 - (slip + fee) / 1e4)
                 cash -= delta * adj
@@ -58,7 +60,7 @@ def panel_backtest(panel, universe, lookback, cost, stress_m=1.0, initial_cash=1
 
 
 def _sharpe_d(rets) -> float:
-    """Daily Sharpe — DSR tinh nhat quan o tan suat quan sat."""
+    """Daily Sharpe; DSR uses the observation frequency consistently."""
     import numpy as np
     r = np.asarray(list(rets), dtype=float)
     return float(r.mean() / (r.std() + 1e-12)) if len(r) > 1 else 0.0
@@ -114,8 +116,7 @@ def _oos_for_stress(panel, universe, cost, stress_m, dates, splits, cands,
 
 def run_gate(seed: int = 42, telemetry: Telemetry | None = None,
              candidate_lookbacks: list[int] | None = None, backend: str = "python") -> dict:
-    """candidate_lookbacks: proposal tu agents (VD: Proposal.candidate_lookbacks).
-    K trials = len(candidates) — proposal cang nhieu, DSR phat cang nang."""
+    """Run the gate; more proposed candidates increase the DSR penalty."""
     tel = telemetry or Telemetry()
     selected_backend = _resolve_backend(backend)
     tel.log("INFO", "gate.backend", backend=selected_backend)

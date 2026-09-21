@@ -1,4 +1,4 @@
-"""Structural tests — mirror linters để fail nhanh local."""
+"""Structural tests that mirror linters for fast local failure."""
 from __future__ import annotations
 import subprocess, sys
 

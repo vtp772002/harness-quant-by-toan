@@ -1,4 +1,4 @@
-"""Run all linters — Ralph Wiggum Loop bước 1."""
+"""Run all linters — Ralph Wiggum Loop step 1."""
 import subprocess, sys
 ok = True
 for f in ["linters/layering.py", "linters/no_lookahead.py", "linters/determinism.py", "linters/taste.py"]:

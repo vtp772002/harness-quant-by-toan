@@ -1,6 +1,7 @@
-"""Deterministic indicator + structure tools. Pure, PIT-safe: chi nhan bars_asof (ts<=t).
-Khong TA-Lib — pandas-only de giu boring deps. Moi ham dung trailing data, khong bao gio
-nhin qua bar cuoi cua input.
+"""Deterministic indicator and structure tools.
+
+Pure and PIT-safe: functions receive only `bars_asof` (`ts<=t`), use pandas to
+keep dependencies boring, and never inspect beyond the final input bar.
 """
 from __future__ import annotations
 import numpy as np
@@ -53,7 +54,7 @@ def atr(df: pd.DataFrame, window: int = 14) -> pd.Series:
 
 
 def range_position(bars_asof: pd.DataFrame, window: int = 20) -> float:
-    """Vi tri close hien tai trong range trailing (loai bar hien tai khoi range). 0..1."""
+    """Current close position in the trailing range, from 0 to 1."""
     hist = bars_asof.iloc[:-1].tail(window)
     if len(hist) < 2:
         return 0.5
@@ -65,7 +66,7 @@ def range_position(bars_asof: pd.DataFrame, window: int = 20) -> float:
 
 
 def breakout(bars_asof: pd.DataFrame, window: int = 20) -> str:
-    """Close hien tai vuot range trailing (loai bar hien tai) → up/down/none."""
+    """Whether the current close breaks the trailing range."""
     hist = bars_asof.iloc[:-1].tail(window)
     if len(hist) < 2:
         return "none"
@@ -78,7 +79,7 @@ def breakout(bars_asof: pd.DataFrame, window: int = 20) -> str:
 
 
 def engulfing(bars_asof: pd.DataFrame) -> str:
-    """Nen nhan chim 2-bar cuoi: bull/bear/none."""
+    """Classify the final two-bar engulfing pattern."""
     if len(bars_asof) < 2:
         return "none"
     p, c = bars_asof.iloc[-2], bars_asof.iloc[-1]
@@ -90,7 +91,7 @@ def engulfing(bars_asof: pd.DataFrame) -> str:
 
 
 def trend_slope(bars_asof: pd.DataFrame, window: int = 30) -> tuple[float, float]:
-    """Slope (bps/bar) + R2 cua fit tuyen tinh tren log close trailing. Chi dung qua khu."""
+    """Return slope (bps/bar) and R2 for a trailing log-close fit."""
     hist = bars_asof.tail(window + 1)
     if len(hist) < 5:
         return (0.0, 0.0)

@@ -1,4 +1,4 @@
-"""Clock provider — noi DUY NHAT duoc phep cham wall-clock."""
+"""Clock provider — the only place allowed to read the wall clock."""
 from __future__ import annotations
 
 from datetime import datetime, timezone

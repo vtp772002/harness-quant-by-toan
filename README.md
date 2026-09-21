@@ -1,59 +1,104 @@
 # Quant Research Harness
 
-Agent-first harness for quantitative research. It makes research runs
-reproducible and blocks common mistakes before a strategy is promoted:
+Agent-first infrastructure for quantitative research. The harness turns a
+research hypothesis into a reproducible, reviewable experiment and blocks
+common sources of false confidence:
 
 - point-in-time data and no lookahead;
-- transaction costs and risk limits;
-- deterministic seeds and auditable run artifacts;
-- purged walk-forward evaluation with out-of-sample gates.
+- explicit fees, slippage, and risk limits;
+- deterministic seeds and inspectable run evidence;
+- purged walk-forward evaluation and out-of-sample promotion gates;
+- a Rust control plane and hot loop with a Python reference oracle.
 
-This repository is a research control system, not a trading system and not a
-claim that the included synthetic strategy has a real-world edge.
+This is a research control system, not a live-trading system. A PASS on the
+included synthetic market proves that the plumbing is working; it does not
+prove that an alpha is real or profitable.
 
 **Version:** `0.2.0` · **License:** [MIT](LICENSE) · **Design reference:**
 [OpenAI — Harness engineering](https://openai.com/index/harness-engineering/)
 
-## Choose your path
+## Contents
 
-| Goal | Start here |
+| If you want to... | Read |
 |---|---|
-| Run this repository locally | [Quickstart](#quickstart) |
-| Add the harness to another quant repository | [Curl installer](#curl-installer) |
-| Run a research experiment | [Research loop](#research-loop) |
-| Understand Python and Rust | [Runtime boundary](#runtime-boundary) |
-| Change the harness | [Development checks](#development-checks) |
+| Run the repository | [Quickstart](#quickstart) |
+| Install into another repository | [Curl installer](#curl-installer) |
+| Run a strategy experiment | [Research workflow](#research-workflow) |
+| Understand the gate result | [Evaluation gate](#evaluation-gate) |
+| Understand Python/Rust responsibilities | [Runtime boundary](#runtime-boundary) |
+| Contribute safely | [Development and validation](#development-and-validation) |
+| Find the detailed policy | [Documentation map](#documentation-map) |
+
+## What this repository provides
+
+The harness provides five things:
+
+1. **A repository contract.** `AGENTS.md`, `ARCHITECTURE.md`, and the `docs/`
+   tree tell agents where decisions, assumptions, and constraints live.
+2. **A deterministic research loop.** Seeded synthetic data, backtests, logs,
+   metrics, and manifests make a run inspectable and repeatable.
+3. **A skeptical evaluation gate.** Purged folds, embargoing, cost stress,
+   selection-aware Deflated Sharpe, and drawdown limits make promotion harder.
+4. **Mechanical feedback.** Linters, tests, Rust/Python conformance, and a
+   versioned scorecard fail early when the contract is violated.
+5. **A portable entrypoint.** Bash and PowerShell are thin adapters around the
+   Rust control plane, so the same `doctor`, `boot`, and `check` contract works
+   across supported environments.
+
+It intentionally does not provide a broker, credentials, live order execution,
+real market data, or a claim of investment performance.
 
 ## Quickstart
 
 ### Requirements
 
-- Python `>= 3.11`
-- Rust toolchain (`cargo`)
-- Bash on Unix-like systems; PowerShell on Windows
+- Python `>= 3.11`;
+- Rust toolchain with `cargo`;
+- Bash on Unix-like systems;
+- PowerShell on Windows.
 
-### Run the contract checks
+Clone the repository and run commands from its root. Python commands in this
+repository use `PYTHONPATH=.` so local packages resolve consistently.
 
-From the repository root:
+### 1. Check the environment
 
 ```bash
 scripts/quant-harness.sh doctor
+```
+
+This checks that the repository root and required contract files are present.
+
+### 2. Create a reproducible run
+
+```bash
 scripts/quant-harness.sh boot --seed 42
+```
+
+This creates a run manifest containing the run ID, seed, Git SHA, harness
+version, and configuration. The run-local files live under `runs/<run-id>/`.
+
+### 3. Run the complete contract
+
+```bash
 scripts/quant-harness.sh check --seed 42
 ```
 
-`check` is the main health command. It runs the Rust control-plane checks,
-linters, Python tests, the evaluation gate, Rust/Python conformance, and the
-behavior scorecard.
+This is the canonical health command. It builds the Rust numerical core, tests
+the Rust control plane, runs blocking linters and Python tests, runs the honest
+evaluation gate, checks Rust/Python conformance, and executes the behavior
+scorecard. A failing blocking stage stops the command.
 
-For a single research smoke test:
+### 4. Run only the research path
 
 ```bash
 PYTHONPATH=. python scripts/run-backtest.py --seed 42
 PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
 ```
 
-On Windows, use the PowerShell adapter:
+The first command runs the deterministic demo backtest. The second command
+returns JSON with the gate verdict and metrics.
+
+On Windows, use the control-plane adapter:
 
 ```powershell
 .\scripts\quant-harness.ps1 doctor
@@ -61,137 +106,261 @@ On Windows, use the PowerShell adapter:
 .\scripts\quant-harness.ps1 check --seed 42
 ```
 
-Every run writes inspectable artifacts under `runs/<run-id>/`, including a
-manifest, JSONL logs, metrics, and traces.
+For Python commands in PowerShell:
+
+```powershell
+$env:PYTHONPATH = "."
+python scripts/run-backtest.py --seed 42
+python scripts/run-eval.py --seed 42 --backend auto
+```
 
 ## Curl installer
 
-Install the control-plane into an existing quant repository:
+Install the control plane and managed harness files into an existing quant
+repository without cloning this repository:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
   | bash -s -- --yes --target "$PWD"
 ```
 
-The installer downloads the managed payload from this repository, builds the
-Rust control-plane locally, and installs `scripts/bin/quant-harness`. It uses
-merge-safe behavior by default:
+The installer:
+
+1. downloads the fixed payload manifest from the selected source ref;
+2. downloads only the managed files listed in that manifest;
+3. preserves existing files by default;
+4. builds the Rust control plane locally with Cargo; and
+5. installs `scripts/bin/quant-harness` in the target repository.
+
+It does not install credentials, broker integrations, live trading, or product
+policy. Cargo is required on the target machine because the installer builds a
+platform-specific binary locally.
+
+Preview or intentionally replace files as follows:
 
 ```bash
-# Preview changes without writing files
+# Preview without writing files
 curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
   | bash -s -- --dry-run --target "$PWD"
+
+# Pin the source ref for a reproducible bootstrap (replace the placeholder)
+curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
+  | bash -s -- --yes --ref "COMMIT_SHA_OR_TAG" --target "$PWD"
 
 # Replace managed files intentionally
 curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
   | bash -s -- --yes --override --target "$PWD"
 ```
 
-The installer does not install credentials, broker integrations, live trading,
-or product policy. Review the script and pin `--ref` to a release or commit
-when reproducible bootstrap is required.
+For non-interactive use, `--yes` is required. Review the installer and pin a
+trusted ref before using it in automation. Release checksums are a follow-up
+workstream; the current installer builds source locally rather than fetching a
+prebuilt binary.
 
-## Research loop
+## Research workflow
 
-Use this loop for each hypothesis:
+Use this loop for every hypothesis. The gate is a promotion authority, not a
+replacement for research judgment.
 
-1. Write a short spec: hypothesis, universe, horizon, costs, risk limits, and
-   numeric kill criteria. See
-   [`docs/product-specs/quant-research-loop.md`](docs/product-specs/quant-research-loop.md).
-2. Implement the signal in the correct domain layer. Features must be
-   point-in-time and consume only data available at `t`.
-3. Run a seeded backtest:
-   `PYTHONPATH=. python scripts/run-backtest.py --seed 42`.
-4. Run the promotion gate:
-   `PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto`.
-5. Review the artifacts and run `scripts/quant-harness.sh check --seed 42`
-   before opening a small PR.
+### 1. Write the experiment specification
 
-The gate evaluates net-of-costs out-of-sample behavior using purged and
-embargoed folds. A synthetic PASS validates the harness plumbing; it does not
-validate a live-market alpha. Gate definitions and thresholds live in
-[`docs/EVALUATION.md`](docs/EVALUATION.md).
+Create a short specification containing:
 
-## Runtime boundary
+- a falsifiable hypothesis;
+- the universe and its point-in-time membership rule;
+- horizon and rebalance frequency;
+- feature definitions and the `asof` rule;
+- fees, slippage, and stress multipliers;
+- position, drawdown, and turnover limits; and
+- numeric kill criteria.
 
-The project is intentionally hybrid:
+Use [`docs/product-specs/quant-research-loop.md`](docs/product-specs/quant-research-loop.md)
+as the template. For work longer than 30 minutes, create an execution plan in
+`docs/exec-plans/active/` before implementation.
 
-```text
-Python: data orchestration, research workflow, gate, DSR, reference oracle
-                     │ CSV boundary
-Rust:   deterministic hot-loop backtest and cross-platform control plane
-```
+### 2. Implement within the architecture
 
-Rust is used where a stable, fast numerical core and portable executable are
-valuable. Python remains the reference implementation and fallback, so a Rust
-change must agree with the Python oracle within the conformance tolerance.
-This preserves research velocity and makes numerical regressions visible.
-
-Select the evaluation backend explicitly when needed:
-
-```bash
-PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto    # Rust if built, otherwise Python
-PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend rust    # require Rust release binary
-PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend python  # reference oracle
-```
-
-The Rust backtest implementation is documented in
-[`docs/design-docs/rust-core.md`](docs/design-docs/rust-core.md). Compare the
-two backends with:
-
-```bash
-PYTHONPATH=. python scripts/bench-rust.py
-```
-
-## Architecture and invariants
-
-Each quant domain (`data`, `alpha`, `backtest`, `risk`, `portfolio`) follows:
+Put code in the correct domain and preserve the dependency direction:
 
 ```text
 Types → Config → Repo → Service → Runtime → Reports
 ```
 
+Feature functions must receive point-in-time data, not a full future-bearing
+DataFrame. Risk decisions belong in `src/domains/risk/`; provider boundaries
+belong in `src/providers/`.
+
+### 3. Run the deterministic smoke test
+
+```bash
+PYTHONPATH=. python scripts/run-backtest.py --seed 42
+```
+
+Inspect the emitted metrics and the run artifacts. Query them with:
+
+```bash
+PYTHONPATH=. python scripts/query-metrics.py --metric sharpe
+PYTHONPATH=. python scripts/query-logs.py --filter level=ERROR
+```
+
+### 4. Run the promotion gate
+
+```bash
+PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
+```
+
+Do not promote based on an in-sample result or a single attractive chart. Read
+the JSON verdict, OOS metrics, selected candidates, backend identity, and run
+manifest.
+
+### 5. Validate and review
+
+```bash
+scripts/quant-harness.sh check --seed 42
+```
+
+Keep changes small, encode decisions in `docs/`, and attach reproducible
+evidence to the change. A flaky strategy result should trigger a follow-up run;
+it should not be silently treated as proof.
+
+## Evaluation gate
+
+The gate runs a deterministic synthetic panel through:
+
+```text
+market data → split adjustment → point-in-time universe →
+cost-aware backtest → purged/embargoed folds →
+train-only candidate selection → OOS metrics → stress tests
+```
+
+The current blocking thresholds are:
+
+| Metric | Requirement |
+|---|---:|
+| OOS annualized Sharpe | `> 0.5` |
+| Deflated Sharpe | `> 0.95` |
+| Slippage stress ×2 Sharpe | `> 0` |
+| Slippage stress ×5 Sharpe | `> -1.0`; informational unless deeply negative |
+| OOS maximum drawdown | `> -15%` |
+
+The JSON output includes `verdict`, `backend`, `sharpe_oos`, `dsr`,
+`stress_x2`, `stress_x5`, `max_dd`, `picks`, and `candidates`. `K` in the
+Deflated Sharpe calculation includes candidate configurations proposed by the
+agent layer; proposing more alternatives increases the multiple-testing
+penalty.
+
+Full policy, known limitations, and calibration evidence are in
+[`docs/EVALUATION.md`](docs/EVALUATION.md) and
+[`docs/design-docs/honest-eval.md`](docs/design-docs/honest-eval.md).
+
+## Runtime boundary
+
+The project is deliberately hybrid:
+
+```text
+Python: data orchestration, research workflow, gate, DSR, reference oracle
+                              │ inspectable CSV boundary
+Rust:   deterministic hot-loop backtest and cross-platform control plane
+```
+
+### Python responsibilities
+
+- research-domain models, repositories, services, and providers;
+- orchestration of the evaluation gate and candidate selection;
+- Deflated Sharpe and report generation;
+- the reference implementation used for conformance and fallback;
+- agent proposals and deterministic replay of LLM responses.
+
+### Rust responsibilities
+
+- the `doctor`, `boot`, and `check` control-plane commands;
+- the standard-library-only numerical hot loop in `crates/quant-core`;
+- a portable executable entrypoint for repository automation.
+
+Rust is promoted for speed and a stable executable boundary, not because
+Python is being deleted. The Python oracle remains necessary to detect semantic
+drift. Rust and Python must agree within the documented tolerance.
+
+Choose the backend explicitly when diagnosing or benchmarking:
+
+```bash
+# Normal path: Rust when the release binary exists, Python otherwise
+PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
+
+# Fail closed if the Rust release binary is not available
+PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend rust
+
+# Force the reference oracle
+PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend python
+
+# Compare runtime and numerical conformance
+PYTHONPATH=. python scripts/bench-rust.py
+```
+
+The boundary and conformance contract are documented in
+[`docs/design-docs/rust-core.md`](docs/design-docs/rust-core.md).
+
+## Architecture and invariants
+
 Cross-cutting capabilities such as market data, clock, telemetry, and LLM
-access go through provider interfaces. The composition root is
-`src/wiring.py`; the full contract is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+access pass through provider interfaces. The composition root is
+`src/wiring.py`; the complete layer contract is in
+[`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 The blocking invariants are:
 
-- no lookahead: features use only timestamps `<= t`;
-- determinism: seeded randomness and no uncontrolled wall-clock reads;
-- costs and risk: fees/slippage are modeled and risk breaches raise;
-- layer and taste checks: dependency direction, file/function size, and
-  structured logging remain enforceable.
+- **No lookahead:** features use only timestamps `<= t`.
+- **Determinism:** use seeded randomness and controlled clocks.
+- **Costs and risk:** fees/slippage are modeled and risk breaches raise.
+- **Layering:** dependencies only point forward through the domain layers.
+- **Boundary parsing:** external data is validated before it enters domain logic.
+- **Taste:** file/function size, logging, and secret checks remain enforceable.
 
-If a new rule matters, encode it as a guard with positive and negative proof;
-do not rely on README prose alone.
+If a rule matters, encode it as a guard with positive and negative proof. Do
+not rely on README prose alone.
+
+## Observability and command reference
+
+Each run writes the following evidence under `runs/<run-id>/`:
+
+```text
+manifest.json   seed, Git SHA, config, version, and backend identity
+logs.jsonl      structured events and errors
+metrics.jsonl   queryable research and gate metrics
+traces.jsonl    provider and execution traces where applicable
+```
+
+| Command | Purpose |
+|---|---|
+| `quant-harness.sh doctor` | Validate repository contract and required paths |
+| `quant-harness.sh boot --seed 42` | Create a reproducible run manifest |
+| `quant-harness.sh check --seed 42` | Run the complete blocking contract |
+| `python scripts/run-backtest.py --seed 42` | Run the deterministic demo backtest |
+| `python scripts/run-eval.py --backend auto` | Run the promotion gate |
+| `python scripts/evaluate-quant-harness.py` | Run the versioned harness scorecard |
+| `python scripts/bench-rust.py` | Compare Python and Rust backends |
+| `python scripts/doc-garden.py --scan` | Find stale documentation markers |
+| `python scripts/gc-scan.py` | Find duplicated helpers and unsafe probing |
 
 ## Repository map
 
 ```text
-src/                         Python research domains and providers
-evals/                       walk-forward evaluation, gate, Rust bridge
-crates/quant-core/           Rust numerical backtest core
-crates/harness-cli/          Rust cross-platform control plane
-scripts/                     bootstrap, run, benchmark, docs, and observability tools
-linters/                     blocking architecture and quality checks
-tests/                       structure, evaluation, agent, and conformance tests
-docs/                        system of record: specs, decisions, plans, and policies
-runs/                        local per-run logs, metrics, traces, and manifests
+AGENTS.md                  agent entrypoint and progressive-disclosure map
+ARCHITECTURE.md            layer and provider contracts
+src/                       Python research domains and providers
+evals/                     walk-forward evaluation, gate, and Rust bridge
+crates/quant-core/         Rust numerical backtest core
+crates/harness-cli/        Rust cross-platform control plane
+scripts/                   install, run, benchmark, docs, and observability tools
+linters/                   blocking architecture and quality checks
+tests/                     structure, evaluation, agent, and conformance tests
+docs/                      specifications, policies, plans, and decisions
+runs/                      local run evidence; do not commit generated runs
 ```
 
-Useful documents:
+## Development and validation
 
-- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — seeds and run evidence;
-- [`docs/NO_LOOKAHEAD.md`](docs/NO_LOOKAHEAD.md) — point-in-time contract;
-- [`docs/RISK_LIMITS.md`](docs/RISK_LIMITS.md) — enforced risk boundaries;
-- [`docs/SECURITY.md`](docs/SECURITY.md) — security model and reporting;
-- [`docs/RELIABILITY.md`](docs/RELIABILITY.md) — failure and recovery rules;
-- [`docs/decisions/`](docs/decisions/) — accepted architectural decisions.
-
-## Development checks
-
-Run the focused checks while editing:
+Run focused checks while editing:
 
 ```bash
 python linters/run_all.py
@@ -201,9 +370,36 @@ python scripts/gc-scan.py
 git diff --check
 ```
 
-For tasks longer than 30 minutes, create an execution plan under
-`docs/exec-plans/active/`. Keep product decisions and research assumptions in
-the repository so agents can read and enforce them.
+For the full repository contract, prefer:
+
+```bash
+scripts/quant-harness.sh check --seed 42
+```
+
+The local `pytest` command disables auto-loaded plugins because unrelated global
+plugins can otherwise change the environment. The control-plane check applies
+the same isolation.
+
+Before opening a PR:
+
+1. confirm the relevant source-of-truth documents were updated;
+2. confirm no lookahead and determinism checks pass;
+3. compare Rust and Python if numerical code changed;
+4. inspect the run manifest and metrics; and
+5. keep the change small and explain any remaining technical debt.
+
+## Documentation map
+
+- [`AGENTS.md`](AGENTS.md) — agent operating contract and reading map;
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — dependency direction and providers;
+- [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md) — seeds and evidence;
+- [`docs/NO_LOOKAHEAD.md`](docs/NO_LOOKAHEAD.md) — point-in-time contract;
+- [`docs/RISK_LIMITS.md`](docs/RISK_LIMITS.md) — enforced risk boundaries;
+- [`docs/EVALUATION.md`](docs/EVALUATION.md) — gate policy and thresholds;
+- [`docs/SECURITY.md`](docs/SECURITY.md) — secrets and data handling;
+- [`docs/RELIABILITY.md`](docs/RELIABILITY.md) — runtime failure rules;
+- [`docs/decisions/`](docs/decisions/) — accepted architectural decisions;
+- [`docs/exec-plans/`](docs/exec-plans/) — active, completed, and deferred work.
 
 ## Attribution and disclaimer
 

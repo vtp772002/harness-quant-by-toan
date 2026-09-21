@@ -1,3 +1,8 @@
-# DESIGN — quyết định boring-stack
-Python + pydantic + pandas + duckdb + parquet. Không polars/clickhouse cho tới khi agent chứng minh cần.
-Lý do: legible, stable API, training-set dày → agent model được.
+# DESIGN — Boring Stack Decision
+
+Use Python, Pydantic, pandas, DuckDB, and Parquet by default. Do not add
+Polars or ClickHouse until an agent-backed experiment proves that the current
+stack is the bottleneck.
+
+The rationale is legibility, stable APIs, and mature examples that agents can
+reason about reliably.

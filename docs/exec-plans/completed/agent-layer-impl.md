@@ -1,18 +1,30 @@
-# Exec Plan: agent-layer slice 1 (pipeline deterministic + LLM provider seam)
+# Exec Plan: Agent-Layer Slice 1 (Deterministic Pipeline and LLM Seam)
 
 ## Goal
-Agents propose (hypothesis/params), gate disposes (verdict). Slice 1 chay offline hoan toan.
 
-## Scope (lam xong)
-- `alpha/tools.py`: RSI/MACD/Stoch/ROC/WillR/ATR + breakout/engulfing/range/trend_slope (pandas, PIT).
-- `alpha/schemas.py`: Indicator/Pattern/TrendReport + Proposal + ProposalContext (Pydantic).
-- `providers/llm.py`: LLMProvider protocol + ReplayLLM (test) + LiveLLM (can key, stdlib HTTPS).
-- `alpha/agents.py`: pipeline 4 buoc + rules-v1 fallback + provider path (validate + asof<=ts assert).
-- `evals/gate.py`: nhan candidate_lookbacks tu Proposal; K = len(candidates).
+Agents propose hypotheses and parameters; the gate decides the verdict. Slice 1
+is fully offline and deterministic.
 
-## Khong lam (deferred, can human — decision 0001)
-Provider that, secrets policy, token budget, LangGraph, live-fire validation.
+## Scope (complete)
+
+- `alpha/tools.py`: RSI, MACD, Stoch, ROC, WillR, ATR, breakout, engulfing,
+  range, and trend-slope tools using pandas and point-in-time inputs.
+- `alpha/schemas.py`: Indicator, Pattern, TrendReport, Proposal, and
+  ProposalContext schemas using Pydantic.
+- `providers/llm.py`: `LLMProvider`, `ReplayLLM` for tests, and `LiveLLM` with
+  an optional key and standard-library HTTPS.
+- `alpha/agents.py`: four-step pipeline, rules-v1 fallback, provider path,
+  validation, and `asof <= ts` assertion.
+- `evals/gate.py`: accepts `candidate_lookbacks` from Proposal and sets
+  `K = len(candidates)`.
+
+## Not included (deferred; requires a human decision)
+
+Real provider selection, secrets policy, token budget, LangGraph, and live-fire
+validation remain governed by decision `0001`.
 
 ## Acceptance
-linters xanh + pytest (10 tests agent-layer) xanh + gate seed 42 PASS byte-identical +
-scorecard PASS. → DAT → move sang completed/.
+
+Linters pass, the ten agent-layer tests pass, seed-42 gate output is
+byte-identical across repeated runs, and the scorecard passes. The plan is
+complete and belongs in `completed/`.

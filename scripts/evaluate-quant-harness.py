@@ -1,7 +1,8 @@
-"""Behavior scorecard cho quant harness — output JSON versioned.
-Y tuong tu harness-by-victoria evaluate-harness.sh; viet bang Python stdlib (khong can jq).
-Chay: PYTHONPATH=. python scripts/evaluate-quant-harness.py [--seed 42]
-Exit 0 neu moi case blocking pass/skip; exit 1 neu co blocking fail.
+"""Versioned behavior scorecard for the quant harness.
+
+Inspired by harness-by-victoria's evaluate-harness.sh and implemented with the
+Python standard library, so jq is not required. Exit 0 when every blocking case
+passes; exit 1 when a blocking case fails.
 """
 from __future__ import annotations
 
@@ -34,7 +35,7 @@ def case(id_: str, dim: str, cmd: str, blocking: bool, fn) -> dict:
     try:
         ok, proof = fn()
         status = "passed" if ok else "failed"
-    except Exception as e:  # noqa: BLE001 — scorecard khong duoc crash
+    except Exception as e:  # noqa: BLE001 — the scorecard must not crash
         ok, proof, status = False, f"exception: {e}", "failed"
     effective = status
     if status == "failed" and not blocking:

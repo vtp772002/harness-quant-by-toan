@@ -1,26 +1,35 @@
 # Rust Core Design (system of record)
 
-## Kien truc: hybrid, khong rewrite
-Python giu orchestration (gate, selection, DSR, universe, telemetry) — noi agent lam viec.
-Rust (`crates/quant-core`) chi port hot loop (`panel_backtest` day-loop) — noi may lam viec.
-Boundary: CSV (`panel.csv`, `members.csv` -> `equity.csv` + stdout meta). Boring, inspectable,
-parse duoc bang mat thuong. Zero dependencies (std only) — khong serde, khong tokio.
+## Architecture: hybrid, not a rewrite
 
-## Tai sao CSV chu khong phai PyO3?
-- Agent doc/debug duoc boundary ma khong can hieu FFI.
-- Determinism check xuyen ngon ngu bang diff file.
-- Khong them toolchain build phuc tap vao moi truong agent (cargo build rieng, binary drop-in).
-- Tra gia: dump 21ms + spawn process ~25ms — chap nhan duoc, amortize bang dump 1 lan / 9 configs.
+Python keeps orchestration (gate, selection, DSR, universe, and telemetry),
+where agents do most research work. Rust (`crates/quant-core`) ports only the
+`panel_backtest` daily hot loop, where execution speed matters.
 
-## So lieu hieu chinh (2026-09-13, seed 42, 756 ngay x 4 symbols)
+The boundary is CSV (`panel.csv`, `members.csv` -> `equity.csv` plus stdout
+metadata). It is boring, inspectable, and readable without specialized tooling.
+The core has zero dependencies and uses only the Rust standard library: no
+Serde and no Tokio.
+
+## Why CSV instead of PyO3?
+
+- Agents can inspect and debug the boundary without understanding FFI.
+- Cross-language determinism can be checked by diffing files.
+- The target environment needs only a separate Cargo build and a drop-in
+  binary, not a complex Python extension toolchain.
+- The tradeoff is a CSV dump and process spawn. The current benchmark amortizes
+  one dump over multiple candidate configurations.
+
+## Current benchmark (2026-09-21, seed 42, 756 days × 4 symbols)
 | lookback | python | rust | speedup | maxdiff equity |
 |---|---|---|---|---|
-| 5 | 165ms | 33ms | 5.1x | 2.3e-10 |
-| 10 | 154ms | 28ms | 5.4x | 2.3e-10 |
-| 20 | 151ms | 26ms | 5.9x | 2.3e-10 |
+| 5 | 168ms | 18ms | 9.2x | 2.328e-10 |
+| 10 | 154ms | 13ms | 11.4x | 2.328e-10 |
+| 20 | 142ms | 11ms | 13.2x | 2.328e-10 |
 
-maxdiff 2.3e-10 tren equity ~1e6 (tuong doi ~2e-16) — lech last-ulp tu thuat toan std cua pandas.
-Conformance test khoa o rtol=1e-9.
+The maximum difference is `2.328e-10` on equity around `1e6`, approximately
+`2e-16` relative error. This is a last-ULP difference between standard floating
+point operation order and pandas. The conformance test is locked at `rtol=1e-9`.
 
 ## Promotion status
 

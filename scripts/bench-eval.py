@@ -1,5 +1,6 @@
-"""Benchmark baseline: phan ra thoi gian tung khau de dinh luong hot loop.
-Chay: PYTHONPATH=. python scripts/bench-eval.py [--seed 42]
+"""Benchmark the baseline and separate stages to size the hot loop.
+
+Run with: PYTHONPATH=. python scripts/bench-eval.py [--seed 42]
 """
 from __future__ import annotations
 import argparse, time

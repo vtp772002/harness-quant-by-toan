@@ -1,36 +1,56 @@
-# Exec Plan: Honest-Eval Stack (Phase 30 ngay)
+# Exec Plan: Honest-Eval Stack (30-Day Phase)
 
 ## Goal
-Mot eval xanh o day thuc su co nghia. Chot 4 lo hong noi doi lon nhat voi agent quant:
-survivorship bias, cost phang, chon loc nhieu lan thu (multiple testing), train/test rinh nhau.
 
-## Scope (4 workstreams, moi cai 1-3 PRs ngan)
-1. **PIT universe** — `Listing` (list/delist dates) + `UniverseRepo.get_members(t)` + split-adjustment.
-   Backtest chi trade member song tai t. Xong khi: test CCC mat sau delist, AAA lien tuc qua split.
-2. **Regime cost model** — `RegimeCostModel`: slip phu thuoc vol regime + participation rate,
-   stress x2/x5 bat buoc trong gate. Xong khi: slip don dieu theo qty va vol, deterministic.
-3. **Purged-embargo CV + Deflated Sharpe** — `evals/purged_cv.py`, `evals/deflated_sharpe.py`
-   (Acklam inverse-normal, khong them scipy), gate chon lookback tren train, danh gia OOS.
-   K = so config da thu. Xong khi: gate deterministic, DSR test voi gia tri biet truoc.
-4. **Gate + calibration** — `evals/gate.py` + `scripts/run-eval.py`, nguong:
-   OOS Sharpe>0.5, DSR>0.95, stress x2/x5 Sharpe>0, maxDD>-15%.
-   Synthetic market hieu chinh de PASS (chung minh plumbing, KHONG phai claim co alpha that).
+Make a green evaluation meaningful by closing four major gaps in quant-agent
+research: survivorship bias, flat costs, repeated selection, and train/test
+leakage.
 
-## Non-goals (de lai phase sau)
-- Data vendor that (van synthetic), duckdb prod repo, borrow/short costs, intraday LOB.
-- Toi uu toc do (cache, slice) — phase 60 ngay.
+## Scope (four workstreams, one to three small PRs each)
+
+1. **Point-in-time universe** — `Listing` with list/delist dates,
+   `UniverseRepo.get_members(t)`, and split adjustment. The backtest trades only
+   members alive at `t`. Complete when CCC disappears after delisting and AAA
+   remains continuous through a split.
+2. **Regime cost model** — `RegimeCostModel` makes slippage depend on volatility
+   regime and participation rate; stress ×2/×5 is required in the gate. Complete
+   when slippage is monotone in quantity and volatility and remains deterministic.
+3. **Purged-embargo CV and Deflated Sharpe** — `evals/purged_cv.py` and
+   `evals/deflated_sharpe.py` use an Acklam inverse-normal implementation with
+   no SciPy dependency. The gate selects lookbacks on train data and evaluates
+   OOS. `K` equals the number of configurations tried. Complete when the gate is
+   deterministic and DSR has known-value tests.
+4. **Gate and calibration** — `evals/gate.py` and `scripts/run-eval.py` enforce
+   OOS Sharpe `> 0.5`, DSR `> 0.95`, stress ×2/×5 limits, and max drawdown
+   `> -15%`. The calibrated synthetic market proves plumbing, not real alpha.
+
+## Non-goals (later phases)
+
+- A real data vendor, production DuckDB repository, borrow/short costs, and
+  intraday limit-order-book simulation.
+- Performance optimization such as caching and slicing; that belongs to the
+  60-day phase.
 
 ## Decision log (append-only)
-- 2026-09-13: DSR tu viet (erf + Acklam) thay vi scipy — giu boring deps, deterministic.
-- 2026-09-13: ref_vol la prior co dinh (0.01), khong uoc luong tu full-sample — tranh leak vao cost.
-- 2026-09-13: Gate chon lookback tren train moi fold (that), K=3 trials vao DSR — minh hoa selection that.
-- 2026-09-13: Synthetic PASS chi nghia la plumbing dung. Ghi ro trong design doc de khong tu lua.
-- 2026-09-13: BUG tim thay khi chay that — DSR tron don vi (trial_var annualized vs sr_hat daily) nen DSR恒=0.
-  Fix: nhat quan daily + trial_var = phuong sai candidates trong-fold. Linter khong bat duoc — them test DSR known-values.
-- 2026-09-13: n_days 300→756 — Sharpe per-fold SE ~1.6 nen selection nhu tung xu. 756 ngay on dinh hon.
-- 2026-09-13: Deadband min_trade=25 (strategy, khong phai hack) — turnover hang ngay an het edge (~16bps/trade vs ~4bps edge).
-- 2026-09-13: x5 blocking→informational (floor -1.0) — strategy Sharpe 2.08 van rot x5; gate cung se giet do that.
+
+- 2026-09-13: implemented DSR with `erf` and Acklam instead of SciPy to keep
+  dependencies boring and behavior deterministic.
+- 2026-09-13: kept `ref_vol = 0.01` as a fixed prior rather than estimating it
+  from the full sample, avoiding cost leakage.
+- 2026-09-13: selected lookback on train data per fold and passed three trials
+  into DSR to model real selection.
+- 2026-09-13: documented that synthetic PASS means plumbing works, not that
+  alpha is real.
+- 2026-09-13: fixed a DSR unit bug where annualized trial variance was mixed
+  with daily `sr_hat`, producing DSR equal to zero. Added known-value tests.
+- 2026-09-13: increased `n_days` from 300 to 756 because a per-fold Sharpe
+  standard error around 1.6 made selection nearly random.
+- 2026-09-13: added `min_trade=25` as a strategy deadband; daily turnover was
+  consuming the edge (about 16 bps per trade versus a 4 bps edge).
+- 2026-09-13: made ×5 stress informational with a `-1.0` floor because hard
+  blocking rejected a strategy with Sharpe 2.08.
 
 ## Acceptance
-`python linters/run_all.py` xanh + `scripts/run-eval.py --seed 42` PASS 2 lan byte-identical +
-`pytest tests/ evals/` xanh.
+
+`python linters/run_all.py` passes, the seed-42 gate passes twice with
+byte-identical output, and `pytest tests/ evals/` passes.

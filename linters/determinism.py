@@ -1,4 +1,4 @@
-"""Determinism linter (BLOCKING): cấm clock/random trần ngoài providers/clock + utils/rng."""
+"""Blocking determinism linter for raw clocks and randomness."""
 from __future__ import annotations
 import re, sys
 from pathlib import Path
@@ -12,7 +12,7 @@ for py in Path("src").rglob("*.py"):
     txt = py.read_text()
     for pat in PATS:
         if re.search(pat, txt):
-            print(f"FAIL {py}: `{pat}` — nondeterminism. FIX: SimulatedClock.now() hoặc seeded_rng(seed). See docs/REPRODUCIBILITY.md")
+            print(f"FAIL {py}: `{pat}` — nondeterminism. FIX: SimulatedClock.now() or seeded_rng(seed). See docs/REPRODUCIBILITY.md")
             FAIL = 1
 print("determinism OK" if not FAIL else "determinism FAILED")
 sys.exit(FAIL)

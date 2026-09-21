@@ -1,4 +1,4 @@
-"""DataVendor + ExchangeSim protocols — parse at boundary bang Pydantic."""
+"""DataVendor and ExchangeSim protocols; parse at the boundary with Pydantic."""
 from __future__ import annotations
 
 import math

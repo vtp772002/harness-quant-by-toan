@@ -1,4 +1,4 @@
-"""Seeded RNG + structured logging. Determinism: moi randomness qua ham nay."""
+"""Seeded RNG and structured logging. Route all randomness through this helper."""
 from __future__ import annotations
 
 import json

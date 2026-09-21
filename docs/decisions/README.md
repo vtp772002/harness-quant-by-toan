@@ -1,3 +1,7 @@
-# Decisions (ADR) — append-only, so thu tu tang dan
-Quy uoc ten: `NNNN-ten-ngan.md`. Moi record ghi: context, quyet dinh, he qua, thay the.
-Lay cam hung tu harness-by-victoria (MIT) — noi dung viet lai cho quant.
+# Decisions (ADR) — Append-Only, Increasing Order
+
+Use the filename convention `NNNN-short-name.md`. Every record captures
+context, the decision, consequences, and rejected alternatives.
+
+The structure is inspired by harness-by-victoria (MIT), but the content is
+rewritten for quantitative research.

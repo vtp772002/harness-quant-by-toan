@@ -6,4 +6,6 @@
 | rust-core.md | active | 2026-09-13 |
 | agent-layer.md | active | 2026-09-13 |
 
-Moi Slack alignment phai encode thanh doc o day trong 24h, neu khong coi nhu khong ton tai voi agent.
+Every alignment made outside the repository must be encoded here within 24
+hours. Otherwise it is not considered part of the agent-readable system of
+record.

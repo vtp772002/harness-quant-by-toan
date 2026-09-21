@@ -1,4 +1,4 @@
-"""Backtest reports — Sharpe sau costs, turnover. Read-only."""
+"""Read-only backtest reports with Sharpe after costs and turnover."""
 from __future__ import annotations
 
 

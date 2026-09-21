@@ -1,5 +1,7 @@
-"""Conformance: Rust core phai khop Python reference (equity 1e-9, fills/turnover).
-Skip neu binary chua build — Python reference van la source of truth cho gate.
+"""Rust core must match the Python reference within equity and metadata tolerances.
+
+Skip when the binary is not built; the Python reference remains the gate source
+of truth.
 """
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ def _require_bin():
     from evals.rust_core import binary_path
     b = binary_path()
     if b is None:
-        pytest.skip("quant-core binary chua build")
+        pytest.skip("quant-core binary is not built")
     return b
 
 

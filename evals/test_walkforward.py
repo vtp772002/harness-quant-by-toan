@@ -1,4 +1,7 @@
-"""Walk-forward eval — 3 folds OOS, sau costs. Non-blocking nhưng promote cần xanh."""
+"""Walk-forward evaluation: three OOS folds after costs.
+
+The test is non-blocking by itself, but promotion requires it to pass.
+"""
 from __future__ import annotations
 import pandas as pd
 from src.domains.data.config import DataConfigModel

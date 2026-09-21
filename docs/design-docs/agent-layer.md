@@ -1,41 +1,56 @@
-# Agent Layer Design — dua multi-agent LLM vao harness (proposal-only)
+# Agent Layer Design — Multi-Agent LLM Proposal Layer
 
-## Trang thai: slice 1 DONE (2026-09-13) — pipeline + provider seam, offline 100%.
-Con lai: provider that/secrets/tokens/LangGraph/live-fire (can human, decision 0001).
+## Status: slice 1 complete (2026-09-13)
 
-## Nguon
-Kien truc 4-agent cua QuantHarness (Y-Research-SBU, MIT, arXiv 2509.09995):
-Indicator → Pattern → Trend → Decision (LangGraph, vision charts, yfinance).
-Noi dung duoi day viet lai hoan toan cho harness nay — khong copy code.
+The deterministic pipeline and provider seam are complete and fully offline.
+Real providers, secrets, token budgets, LangGraph, and live-fire validation
+remain deferred pending human decisions under decision `0001`.
 
-## Nguyen tac tich hop (bat buoc)
-1. **Agents propose, gate disposes.** LLM chi duoc de xuat (hypothesis, regime read,
-   candidate params). Thang/qu thua do `evals/gate.py` quyet. Khong verdict nao tu
-   LLM duoc promote ma chua qua gate.
-2. **Tools deterministic, LLM thay the duoc.** Indicator (RSI/MACD/Stoch) tinh bang
-   pandas seeded — khong phai loi LLM. LLM nam sau `Providers.llm` protocol de mock
-   trong test (deterministic replay). Pattern/trend vision la optional, output phai
-   validate Pydantic truoc khi vao decision.
-3. **Khong cam HOLD, khong ep LONG/SHORT.** Quyet dinh cuoi la position sizing +
-   kill-criteria trong risk service, khong phai enum cung tu prompt.
-4. **No lookahead ke ca voi LLM.** Context dua cho LLM chi chua bars `ts <= t`
-   + universe members tai t. Prompt chua du lieu tuong lai = P0 nhu code.
-5. **Chi phi + nondeterminism phai thay duoc.** Moi LLM call ghi vao traces.jsonl
-   (model, tokens, seed). Eval khong bao gio phu thuoc output LLM truc tiep —
-   chi phu thuoc params/config LLM de xuat.
+## Source
 
-## Map vao layers hien co
-- `src/domains/alpha/tools.py` (moi): indicator thuan, pandas-only (khong TA-Lib de giu boring deps).
-- `src/domains/alpha/schemas.py` (moi): `IndicatorReport`, `PatternReport`, `TrendReport`, `Proposal` (Pydantic).
-- `src/providers/llm.py` (moi): `LLMProvider` protocol + `ReplayLLM` (test) + `LiveLLM` (API, secrets qua env).
-- `src/domains/alpha/agents.py` (moi): orchestration 4 buoc thuan tuy (khong LangGraph luc dau —
-  them khi can branch/loop phuc tap; YAGNI).
-- Gate giu nguyen lam promotion authority; K trials bao gom so proposal LLM da thu.
+The conceptual four-agent architecture is inspired by QuantHarness
+(Y-Research-SBU, MIT, arXiv 2509.09995): Indicator → Pattern → Trend →
+Decision, with LangGraph, chart vision, and yfinance in that project. The design
+below is rewritten for this harness and does not copy its code.
 
-## Khong lay tu QuantHarness
-Flask UI (harness khong UI), API-key-qua-UI, forced LONG/SHORT, TA-Lib, langchain deps nang
-(tru khi agent-layer can that — Chung minh bang exec-plan truoc).
+## Integration principles (mandatory)
 
-## Dieu kien implement (tech-debt)
-Can quyet dinh provider + secrets policy + ngan sach tokens truoc khi code (decision 0001:
-day la material choice — dung va hoi human).
+1. **Agents propose, gate disposes.** The LLM may propose a hypothesis, regime
+   read, or candidate parameters. `evals/gate.py` decides success or failure.
+   No LLM verdict is promoted without passing the gate.
+2. **Tools are deterministic and the LLM is replaceable.** RSI, MACD, and Stoch
+   use seeded pandas calculations; they are not LLM work. The LLM sits behind
+   `Providers.llm` so tests can use deterministic replay. Optional pattern or
+   trend vision must be validated by Pydantic before a decision.
+3. **Do not force HOLD, LONG, or SHORT.** The final decision is position sizing
+   plus risk-service kill criteria, not an enum copied from a prompt.
+4. **No lookahead, including for LLM context.** LLM context contains only bars
+   with `ts <= t` and universe members at `t`. Future data in a prompt is a P0
+   violation, just like future data in code.
+5. **Cost and nondeterminism must be visible.** Every LLM call records model,
+   tokens, and seed in `traces.jsonl`. Evaluation must never depend directly on
+   raw LLM output; it may depend only on the proposed parameters/configuration.
+
+## Mapping to existing layers
+
+- `src/domains/alpha/tools.py`: pure pandas-only indicators; no TA-Lib so the
+  dependency surface stays boring.
+- `src/domains/alpha/schemas.py`: `IndicatorReport`, `PatternReport`,
+  `TrendReport`, `Proposal`, and Pydantic validation.
+- `src/providers/llm.py`: `LLMProvider`, `ReplayLLM` for tests, and `LiveLLM`
+  with secrets supplied through the environment.
+- `src/domains/alpha/agents.py`: a four-step orchestration pipeline. LangGraph
+  is deferred until branching or looping complexity justifies it.
+- The gate remains the promotion authority; `K` includes the LLM proposals tried.
+
+## Explicitly excluded
+
+Do not add a Flask UI, API-key-through-UI flow, forced LONG/SHORT behavior,
+TA-Lib, or heavy LangChain dependencies unless an execution plan proves the
+agent layer needs them.
+
+## Implementation gate
+
+Provider choice, secrets policy, and token budget must be decided before new
+production code is written. This is a material choice under decision `0001`:
+stop and ask the human rather than inventing policy.

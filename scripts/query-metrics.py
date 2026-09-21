@@ -1,4 +1,4 @@
-"""Query metrics kiểu PromQL-boring: python scripts/query-metrics.py --metric sharpe"""
+"""Query metrics using a boring PromQL-like interface."""
 from __future__ import annotations
 import argparse, json, os
 from pathlib import Path

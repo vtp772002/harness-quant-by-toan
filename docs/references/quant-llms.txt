@@ -1,4 +1,5 @@
-# References (llms.txt style) — agent đọc khi cần sâu
-- pandas asof join: dùng `merge_asof`, không `shift(-N)`.
-- duckdb point-in-time: `WHERE ts <= $t ORDER BY ts`.
-- pydantic v2: parse at boundary, `model_validate`.
+# References (llms.txt style) — Read When More Detail Is Needed
+
+- pandas as-of join: use `merge_asof`; never use `shift(-N)` for future data.
+- DuckDB point-in-time query: `WHERE ts <= $t ORDER BY ts`.
+- Pydantic v2: parse at the boundary with `model_validate`.

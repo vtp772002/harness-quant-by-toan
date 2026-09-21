@@ -1,3 +1,7 @@
-# RESEARCH_UI — legibility cho research (tương đương FRONTEND.md)
-Mọi chart là hàm thuần `reports.py -> png/html` + số liệu trong `metrics.jsonl`.
-Agent không "nhìn chart đoán" — đọc metrics + dump equity head/tail.
+# RESEARCH_UI — Research Legibility
+
+Every chart must be a pure rendering step: `reports.py -> png/html`, with the
+underlying numbers recorded in `metrics.jsonl`.
+
+Agents must not infer results by looking at a chart alone. Read the metrics and
+inspect the equity head and tail as numeric evidence.

@@ -7,8 +7,9 @@ the reference oracle and deterministic fallback.
 
 ## Baseline
 
-- Python panel loop: 145–171 ms per candidate on the synthetic panel.
-- Rust panel loop: 25–32 ms per candidate.
+- Historical baseline: Python panel loop 145–171 ms per candidate and Rust
+  panel loop 25–32 ms per candidate on the synthetic panel. See the current
+  benchmark in `docs/design-docs/rust-core.md`.
 - Existing conformance max equity difference: 2.328e-10.
 - Python gate result for seed 42: PASS, OOS Sharpe 2.250929254379804.
 

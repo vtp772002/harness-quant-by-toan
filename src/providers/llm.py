@@ -1,6 +1,8 @@
-"""LLM provider protocol — LLM nam sau interface nay de mock trong test.
-ReplayLLM: deterministic replay cho test/CI (khong goi mang).
-LiveLLM: OpenAI-compatible HTTPS bang stdlib; chi chay khi co key (khong bao gio trong CI).
+"""LLM provider protocol.
+
+ReplayLLM provides deterministic test/CI replay without network calls.
+LiveLLM uses OpenAI-compatible HTTPS through the standard library and requires
+an explicit key; it must never run in CI.
 """
 from __future__ import annotations
 
@@ -23,11 +25,11 @@ class LLMProvider(Protocol):
 
 
 class ReplayLLM:
-    """Chon canned response bang hash cua context — stateless, deterministic, khong mang."""
+    """Choose a canned response by context hash; stateless and offline."""
 
     def __init__(self, canned: list[dict], model_id: str = "replay-v1"):
         if not canned:
-            raise LLMError("ReplayLLM can it nhat 1 canned response")
+            raise LLMError("ReplayLLM requires at least one canned response")
         self._canned = canned
         self._id = model_id
 
@@ -50,7 +52,7 @@ class LiveLLM:
                  base_url: str = "https://api.openai.com/v1", timeout: int = 60):
         key = api_key or os.environ.get("OPENAI_API_KEY")
         if not key:
-            raise LLMError("Thieu OPENAI_API_KEY (env hoac truyen vao). Khong goi LiveLLM trong test/CI.")
+            raise LLMError("OPENAI_API_KEY is missing; do not call LiveLLM in tests or CI")
         self._model, self._key, self._base, self._timeout = model, key, base_url.rstrip("/"), timeout
 
     @property
@@ -60,7 +62,7 @@ class LiveLLM:
     def propose(self, ctx: ProposalContext) -> Proposal:
         body = {"model": self._model, "temperature": 0.1, "response_format": {"type": "json_object"},
                 "messages": [
-                    {"role": "system", "content": "Ban la quant research assistant. Tra ve DUY NHAT JSON khop Proposal: direction (long/short/flat), confidence 0..1, candidate_lookbacks (ints), rationale ngan."},
+                    {"role": "system", "content": "You are a quant research assistant. Return ONLY JSON matching Proposal: direction (long/short/flat), confidence 0..1, candidate_lookbacks (integers), and a short rationale."},
                     {"role": "user", "content": ctx.model_dump_json()}]}
         req = urllib.request.Request(self._base + "/chat/completions", data=json.dumps(body).encode(),
                                      headers={"Authorization": "Bearer " + self._key,
@@ -74,11 +76,11 @@ class LiveLLM:
             d = json.loads(content)
         except LLMError:
             raise
-        except Exception as e:  # noqa: BLE001 — bien moi loi transport/parse thanh LLMError
-            raise LLMError(f"LLM call that bai: {e}")
+        except Exception as e:  # noqa: BLE001 — normalize transport/parse errors
+            raise LLMError(f"LLM call failed: {e}")
         d["symbol"], d["ts"], d["asof"] = ctx.symbol, ctx.ts.isoformat(), ctx.asof.isoformat()
         d.setdefault("model", self._model)
         try:
             return Proposal.model_validate(d)
         except Exception as e:  # noqa: BLE001
-            raise LLMError(f"LLM tra ve Proposal khong hop le: {e}")
+            raise LLMError(f"LLM returned an invalid Proposal: {e}")

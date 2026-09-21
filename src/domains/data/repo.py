@@ -1,4 +1,4 @@
-"""Repo: chi doc point-in-time. Khong tinh toan o day."""
+"""Point-in-time repository; computation does not belong here."""
 from __future__ import annotations
 from datetime import datetime
 import pandas as pd
@@ -20,13 +20,13 @@ class ParquetBarRepo:
         return df
 
     def get_asof(self, symbol: str, t: datetime) -> pd.DataFrame:
-        """Chi tra rows co ts <= t. Day la bien no-lookahead."""
+        """Return only rows with `ts <= t`; this is the no-lookahead boundary."""
         df = self.load(symbol)
         return df[df["ts"] <= t].copy()
 
 
 class UniverseRepo:
-    """Universe la ham cua t. Delist la exclusive: t < delist_ts."""
+    """Universe is a function of `t`; delisting is exclusive: `t < delist_ts`."""
 
     def __init__(self, listings: list[Listing]):
         self._listings = listings

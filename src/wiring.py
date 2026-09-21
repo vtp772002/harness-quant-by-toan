@@ -1,4 +1,4 @@
-"""Composition root duy nhat — noi duy nhat duoc wire providers + domains."""
+"""Single composition root for wiring providers and domains."""
 from __future__ import annotations
 import pandas as pd
 from src.domains.data.config import DataConfigModel

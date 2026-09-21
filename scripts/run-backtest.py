@@ -1,4 +1,4 @@
-"""CLI chạy backtest demo — legible cho agent (tương đương 'drive app via CDP' bản quant)."""
+"""Run the demo backtest with agent-readable output."""
 from __future__ import annotations
 import argparse, json
 from src.wiring import build_demo_run

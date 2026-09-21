@@ -1,4 +1,4 @@
-"""Layering linter — parse import AST, fail kèm remediation (như OpenAI custom lints)."""
+"""Layering linter — parse the import AST and report remediation."""
 from __future__ import annotations
 import ast, sys
 from pathlib import Path
@@ -13,12 +13,12 @@ for py in Path("src").rglob("*.py"):
             mod = getattr(node, "module", "") or ""
             names = ",".join(a.name for a in getattr(node, "names", []))
             imp = mod + names
-            # repo không được import service/runtime; service không import runtime
+            # Repositories cannot import service/runtime; services cannot import runtime.
             if "domains" in str(py) and "repo.py" in str(py) and "service" in imp:
                 print(f"FAIL {py}: repo must not import service. FIX: move logic to service.py, repo only I/O asof.")
                 FAIL = 1
             if "service.py" in str(py) and ("runtime" in imp or "providers.telemetry" in imp and "domains" in imp):
-                pass  # service thuần — cho phép telemetry? chặn runtime
+                pass  # Services stay pure; runtime imports them.
                 if "runtime" in imp:
                     print(f"FAIL {py}: service must not import runtime. FIX: invert — runtime calls service.")
                     FAIL = 1

@@ -1,51 +1,73 @@
-# ARCHITECTURE.md — Layered Domain Architecture cho Quant Harness
+# ARCHITECTURE.md — Layered Domain Architecture for the Quant Harness
 
-Ap dung bai hoc OpenAI Harness Engineering: strict boundaries + predictable
-structure la prerequisite cho agent speed without decay.
+This architecture applies the OpenAI Harness Engineering lesson that strict
+boundaries and predictable structure are prerequisites for agent speed without
+decay.
 
-## 1. Tong quan
+## 1. Overview
 
-App Wiring (src/wiring.py) la composition root duy nhat.
+`src/wiring.py` is the single composition root.
 
-Moi domain (data, alpha, backtest, risk, portfolio) tuan thu:
-  Types -> Config -> Repo -> Service -> Runtime -> Reports
+Every domain (`data`, `alpha`, `backtest`, `risk`, `portfolio`) follows:
 
-Providers la interface duy nhat cho cross-cutting:
-  data_vendor | exchange_sim | telemetry | clock | feature_flags
+```text
+Types → Config → Repo → Service → Runtime → Reports
+```
 
-Utils (src/utils/) nam ngoai boundary, feed vao Providers.
+Providers are the only interface for cross-cutting capabilities:
+
+```text
+data_vendor | exchange_sim | telemetry | clock | feature_flags | llm
+```
+
+Utilities in `src/utils/` sit outside the domain boundary and feed provider or
+service code through explicit interfaces.
 
 ## 2. Layer contract
 
-| Layer | Chua gi | Vi du quant |
+| Layer | Contains | Quant example |
 |---|---|---|
-| types.py | Pydantic models, khong logic | Bar, Signal, Fill, Position |
-| config.py | Dataclass config, parse env, khong I/O | BacktestConfig(seed, fee_bps, slippage_bps) |
-| repo.py | Doc/ghi Parquet/DuckDB, point-in-time queries | ParquetBarRepo.get_asof(symbol, t) |
-| service.py | Logic thuan, deterministic, seeded | MomentumSignal.compute(bars_asof) |
-| runtime.py | Orchestration, event loop, telemetry emit | BacktestRuntime.run() |
-| reports.py | Metrics (sharpe, maxDD, turnover, IC), read-only | summarize(fills) |
+| `types.py` | Pydantic models, no business logic | `Bar`, `Signal`, `Fill`, `Position` |
+| `config.py` | Dataclass/config models, environment parsing, no I/O | `BacktestConfig(seed, fee_bps, slippage_bps)` |
+| `repo.py` | Parquet/DuckDB I/O and point-in-time queries | `ParquetBarRepo.get_asof(symbol, t)` |
+| `service.py` | Pure, deterministic, seeded domain logic | `MomentumSignal.compute(bars_asof)` |
+| `runtime.py` | Orchestration, event loop, telemetry emission | `BacktestRuntime.run()` |
+| `reports.py` | Read-only metrics and rendering | `summarize(fills)` |
 
-Quy tac forward-only: types <- config <- repo <- service <- runtime <- reports.
-service khong import runtime. repo khong import service.
-Cross-domain: chi qua service public API.
-Cross-cutting: chi qua src/providers/*.
+The dependency rule is forward-only:
 
-## 3. Vi sao rigid?
-Agent replicate pattern hien co — ke ca pattern xau. Rigid layers + linter =
-drift bi chan ngay luc PR, khong doi Friday cleanup.
+```text
+types ← config ← repo ← service ← runtime ← reports
+```
 
-Boring deps: stdlib + numpy + pandas + pydantic + duckdb. Khong pull lib la —
-dung src/utils/concurrency.py (map-with-concurrency, 100% coverage).
+Services must not import runtime. Repositories must not import services.
+Cross-domain access goes through public service APIs. Cross-cutting access goes
+through `src/providers/*`.
 
-## 4. Enforce bang linter
-- linters/layering.py — parse import AST, fail kem remediation message.
-- linters/no_lookahead.py — cam .shift(-N), future, lead(, join khong asof.
-- linters/determinism.py — cam random.random(), time.time(), datetime.now() ngoai providers/clock.py.
-- linters/taste.py — file <=500 lines, func <=50, structured logging, no hardcoded secrets.
-- tests/test_structure.py — mirror bang pytest de fail nhanh local.
+## 3. Why rigid boundaries?
+
+Agents reproduce existing patterns, including bad ones. Rigid layers plus a
+linter stop drift at PR time instead of waiting for a periodic cleanup.
+
+Prefer boring dependencies: the standard library, NumPy, pandas, Pydantic, and
+DuckDB. Do not add a library for a helper already provided by
+`src/utils/concurrency.py`, which has full test coverage.
+
+## 4. Mechanical enforcement
+
+- `linters/layering.py` parses the import AST and reports remediation.
+- `linters/no_lookahead.py` rejects `.shift(-N)`, `future`, `lead(`, and joins
+  without an as-of rule.
+- `linters/determinism.py` rejects `random.random()`, `time.time()`, and
+  `datetime.now()` outside `providers/clock.py`.
+- `linters/taste.py` checks file/function size, structured logging, and secrets.
+- `tests/test_structure.py` mirrors the structural checks in pytest.
 
 ## 5. Merge philosophy
-Minimal blocking gates: layering + no_lookahead + determinism + smoke-backtest.
-Full walk-forward + stress-slippage chay non-blocking (nightly / label full-eval).
-PRs short-lived (<400 lines). Corrections cheap, waiting expensive.
+
+Blocking gates are minimal and deterministic: layering, no lookahead,
+determinism, and the smoke backtest. Full walk-forward and slippage stress can
+run as non-blocking nightly or `full-eval` checks.
+
+Keep PRs short-lived and preferably below 400 changed lines. Corrections are
+cheap when evidence is local and boundaries are explicit.

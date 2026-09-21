@@ -29,7 +29,7 @@ def run_rust_backtest(panel, universe, lookback: int, cost, stress_m: float = 1.
     import tempfile
     binp = binary_path()
     if binp is None:
-        raise FileNotFoundError("quant-core binary chua build: cargo build --release -p quant-core")
+        raise FileNotFoundError("quant-core binary is not built: cargo build --release -p quant-core")
     work = d or Path(tempfile.mkdtemp())
     work.mkdir(parents=True, exist_ok=True)
     if not (work / "panel.csv").exists() or not (work / "members.csv").exists():

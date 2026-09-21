@@ -1,18 +1,21 @@
-# 0001 — Judgment boundaries: dung truoc lua chon mo
+# 0001 — Judgment Boundaries: Stop Before an Open Choice
 
-- Ngay: 2026-09-13. Trang thai: accepted.
-- Cam hung: harness-by-victoria (repository authority + stop-before-mutation).
+- Date: 2026-09-13. Status: accepted.
+- Inspired by harness-by-victoria (repository authority and stop-before-mutation).
 
 ## Context
-Agent co xu huong tu che product policy khi yeu cau bo ngo lua chon quan trong
-(vi du: "them rate limiting" ma khong quota; "chon universe" ma khong dinh nghia survivorship).
+Agents tend to invent product policy when a request leaves an important choice
+open, for example adding rate limiting without a quota or choosing a universe
+without defining survivorship.
 
-## Quyet dinh
-Truoc moi mutation, agent phai neu ro authority (doc nao cho phep).
-Neu lua chon con mo o muc material (doi duoc hanh vi quan sat ben ngoai):
-DUNG truoc edit, trinh lua chon cu the + he qua, doi human chon.
-Configurable defaults KHONG phai authority.
+## Decision
+Before every mutation, the agent must name the authority that permits it.
+When a material choice remains open and would change observable behavior, stop
+before editing, present the concrete options and consequences, and wait for the
+human. Configurable defaults are not authority.
 
-## He qua
-- PR nao che policy khong co authority → review reject, khong can tranh luan ky thuat.
-- Skill `encode-invariant` la noi duy nhat bien rule thanh guard (xem docs/decisions/0002).
+## Consequences
+- A PR that invents policy without authority is rejected in review; technical
+  debate does not substitute for the missing decision.
+- The `encode-invariant` skill is the only approved path for turning a rule into
+  a guard; see decision `0002`.

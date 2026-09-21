@@ -1,31 +1,35 @@
-# 0003 — Rust control plane with thin shell adapters
+# 0003 — Rust Control Plane with Thin Shell Adapters
 
-- Ngay: 2026-09-21. Trang thai: accepted.
-- Context: harness da co quant logic va scorecard, nhung chua co mot entrypoint
-  cross-platform de agent boot, tao evidence, va chay cung mot validation
-  contract. README va shell script dang mo ta nhieu lenh rieng le.
+- Date: 2026-09-21. Status: accepted.
+- Context: the harness had quant logic and a scorecard, but no cross-platform
+  entrypoint for booting, producing evidence, and running one validation
+  contract. README and shell scripts described many separate commands.
 
-## Quyet dinh
+## Decision
 
-1. Rust la control plane nho, std-only: `doctor`, `boot`, va `check`.
-2. Bash va PowerShell chi chuyen tiep lenh, khong lap lai policy hay quant
-   logic.
-3. Python tiep tuc la reference implementation cho pandas/Pydantic, eval va
-   scorecard; Rust khong thay the reference khi chua co conformance proof.
-4. `check` phai dat `PYTHONPATH=.` va tat auto-loaded pytest plugins de ket qua
-   khong phu thuoc plugin toan cuc trong may agent.
+1. Rust is a small standard-library-only control plane with `doctor`, `boot`,
+   and `check`.
+2. Bash and PowerShell only forward commands; they do not duplicate policy or
+   quant logic.
+3. Python remains the reference implementation for pandas/Pydantic, evaluation,
+   and the scorecard. Rust does not replace it without conformance proof.
+4. `check` sets `PYTHONPATH=.` and disables auto-loaded pytest plugins so results
+   do not depend on global plugins in an agent machine.
 
-## He qua
+## Consequences
 
-- Agent co mot contract discoverable va inspectable thay vi nho cac lenh roi rac.
-- Rust them mot build surface nho, doi lai co manifest/evidence va failure
-  boundary ro rang.
-- Live data, broker, LLM, va deployment van la product-owned decisions; harness
-  khong tu suy dien hay cap credential.
+- Agents have one discoverable, inspectable contract instead of many scattered
+  commands.
+- Rust adds a small build surface but provides a clear manifest/evidence and
+  failure boundary.
+- Live data, brokers, LLMs, and deployment remain product-owned decisions; the
+  harness does not infer them or provision credentials.
 
 ## Alternatives rejected
 
-- Python CLI moi: trung lap orchestration va lam mo ranh gioi "it Python".
-- Shell-only orchestration: khong co contract typed/portable du tot cho
+- A new Python CLI: duplicates orchestration and blurs the "less Python on the
+  control path" boundary.
+- Shell-only orchestration: lacks a typed, portable contract good enough for
   PowerShell.
-- Rust thay toan bo backtest: vi pham nguyen tac Python reference + conformance.
+- Rust replacing the entire backtest: violates the Python reference and
+  conformance principle.

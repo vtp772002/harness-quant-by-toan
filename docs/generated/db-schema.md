@@ -1,4 +1,4 @@
-# db-schema (generated) — KHÔNG sửa tay
+# db-schema (generated) — Do Not Edit Manually
 - symbol: object
 - ts: datetime64[ns, UTC]
 - open/high/low/close: float64

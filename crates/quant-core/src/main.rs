@@ -1,6 +1,7 @@
 // quant-core: deterministic backtest hot loop, mirror Python evals/gate.py panel_backtest.
 // Boundary: CSV in/out (panel.csv, members.csv -> equity.csv + stdout meta). Std only.
-// Gia dinh (giong Python): gia > 0, CSV khong chua dau phay trong field, panel sort theo (ts, symbol).
+// Assumptions (matching Python): prices are positive, CSV fields contain no
+// commas, and the panel is sorted by (ts, symbol).
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::env;
 use std::fs;

@@ -1,4 +1,4 @@
-"""Map-with-concurrency — ban boring thay p-limit, instrumented, 100% tested."""
+"""Instrumented, fully tested map-with-concurrency helper."""
 from __future__ import annotations
 
 import time

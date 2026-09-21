@@ -1,6 +1,7 @@
-"""Bench Python vs Rust core: conformance + speedup. Can PYTHONPATH=.
-Dump inputs 1 lan (dung that: 1 panel cho 9 configs), do speedup cong bang.
-Tu dong skip Rust neu binary chua build.
+"""Benchmark Python versus the Rust core for conformance and speedup.
+
+Inputs are dumped once and reused across configurations for a fair comparison.
+Rust is skipped automatically when the release binary has not been built.
 """
 from __future__ import annotations
 import tempfile
