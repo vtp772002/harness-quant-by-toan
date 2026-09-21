@@ -23,7 +23,7 @@ legible + enforceable cho agent?" roi de xuat fix vao harness.
 | Cach danh gia chien luoc | `docs/EVALUATION.md` |
 | Schema DB sinh tu dong | `docs/generated/db-schema.md` |
 | Reference thu vien (llms.txt) | `docs/references/` |
-| Bao mat / do tin cay | `docs/SECURITY.md`, `docs/RELIABILITY.md` |
+| Security / reliability | `docs/SECURITY.md`, `docs/RELIABILITY.md` |
 | Quyet dinh da chot (ADR) | `docs/decisions/` |
 | Scorecard suc khoe harness | `bash scripts/quant-harness.sh check --seed 42` |
 | Rust control-plane | `scripts/quant-harness.sh` / `scripts/quant-harness.ps1` |

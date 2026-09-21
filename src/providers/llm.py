@@ -44,7 +44,7 @@ class ReplayLLM:
 
 
 class LiveLLM:
-    """OpenAI-compatible chat endpoint. Secrets qua env, khong hardcode."""
+    """OpenAI-compatible chat endpoint. Secrets come from env, never hard-coded."""
 
     def __init__(self, model: str = "gpt-4o-mini", api_key: str | None = None,
                  base_url: str = "https://api.openai.com/v1", timeout: int = 60):
