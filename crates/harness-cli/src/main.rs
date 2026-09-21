@@ -182,13 +182,25 @@ fn check(root: &Path, options: &HashMap<String, String>) -> bool {
             vec!["scripts/evaluate-quant-harness.py", "--seed", seed],
         ),
     ];
+    let core_ok = stage(
+        root,
+        "rust-core-build",
+        "cargo",
+        &[
+            "build",
+            "--release",
+            "--manifest-path",
+            "crates/quant-core/Cargo.toml",
+        ],
+    );
     let rust_ok = stage(
         root,
         "rust-tests",
         "cargo",
         &["test", "--manifest-path", "crates/harness-cli/Cargo.toml"],
     );
-    rust_ok
+    core_ok
+        && rust_ok
         && stages
             .iter()
             .all(|(name, args)| stage(root, name, python, args))

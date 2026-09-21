@@ -4,6 +4,8 @@ Chon lookback tren train moi fold (that) — K trials di vao DSR. Deterministic 
 from __future__ import annotations
 
 import math
+import tempfile
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from src.domains.alpha.config import AlphaConfigModel
@@ -18,6 +20,7 @@ from evals.purged_cv import purged_embargo_splits
 from evals.deflated_sharpe import deflated_sharpe, return_moments
 
 CANDIDATE_LOOKBACKS = [5, 10, 20]
+BACKENDS = ("python", "rust", "auto")
 SHARPE_MIN, DSR_MIN, STRESS_MIN, DD_MAX = 0.5, 0.95, 0.0, -0.15
 STRESS_X5_FLOOR = -1.0  # informational: chi block khi am sau (fragile ve co cau, khong phai xui)
 
@@ -71,8 +74,33 @@ def _max_dd(rets) -> float:
     return float(((eq / np.maximum.accumulate(eq)) - 1).min()) if len(eq) else 0.0
 
 
-def _oos_for_stress(panel, universe, cost, stress_m, dates, splits, cands) -> tuple[list, list, list]:
-    eq_by_lb = {lb: panel_backtest(panel, universe, lb, cost, stress_m)[0] for lb in cands}
+def _resolve_backend(backend: str) -> str:
+    if backend not in BACKENDS:
+        raise ValueError(f"backend must be one of {BACKENDS}, got {backend!r}")
+    if backend == "auto":
+        from evals.rust_core import binary_path
+        return "rust" if binary_path() else "python"
+    if backend == "rust":
+        from evals.rust_core import binary_path
+        if binary_path() is None:
+            raise FileNotFoundError("Rust backend missing; build crates/quant-core in release mode")
+    return backend
+
+
+def _backend_equity(panel, universe, lookback, cost, stress_m, backend, work):
+    if backend == "python":
+        return panel_backtest(panel, universe, lookback, cost, stress_m)[0]
+    from evals.rust_core import run_rust_backtest
+    return run_rust_backtest(panel, universe, lookback, cost, stress_m, d=work)[0]
+
+
+def _oos_for_stress(panel, universe, cost, stress_m, dates, splits, cands,
+                    backend="python") -> tuple[list, list, list]:
+    work = None
+    if backend == "rust":
+        work = Path(tempfile.mkdtemp(prefix="quant-rust-gate-"))
+    eq_by_lb = {lb: _backend_equity(panel, universe, lb, cost, stress_m, backend, work)
+                for lb in cands}
     rets_by_lb = {lb: eq_by_lb[lb]["equity"].pct_change().fillna(0).tolist() for lb in cands}
     oos, picks, trial_vars = [], [], []
     for train, test in splits:
@@ -85,10 +113,12 @@ def _oos_for_stress(panel, universe, cost, stress_m, dates, splits, cands) -> tu
 
 
 def run_gate(seed: int = 42, telemetry: Telemetry | None = None,
-             candidate_lookbacks: list[int] | None = None) -> dict:
+             candidate_lookbacks: list[int] | None = None, backend: str = "python") -> dict:
     """candidate_lookbacks: proposal tu agents (VD: Proposal.candidate_lookbacks).
     K trials = len(candidates) — proposal cang nhieu, DSR phat cang nang."""
     tel = telemetry or Telemetry()
+    selected_backend = _resolve_backend(backend)
+    tel.log("INFO", "gate.backend", backend=selected_backend)
     cands = list(candidate_lookbacks) if candidate_lookbacks else list(CANDIDATE_LOOKBACKS)
     mkt = make_synthetic_market(seed)
     panel = apply_splits(mkt.panel, mkt.splits)
@@ -96,16 +126,19 @@ def run_gate(seed: int = 42, telemetry: Telemetry | None = None,
     cost = RegimeCostModel()
     dates = sorted(panel["ts"].unique())
     splits = purged_embargo_splits(len(dates), 3, max(cands) + 1, 5)
-    oos, picks, trial_vars = _oos_for_stress(panel, universe, cost, 1.0, dates, splits, cands)
+    oos, picks, trial_vars = _oos_for_stress(
+        panel, universe, cost, 1.0, dates, splits, cands, selected_backend)
     sharpe = _sharpe_ann(oos)
     max_dd = _max_dd(oos)
     sr_d, skew, kurt = return_moments(oos)
     trial_var = float(np.mean(trial_vars))
     dsr = deflated_sharpe(sr_d, len(oos), skew, kurt, trial_var, len(cands))
-    stress = {m: _sharpe_ann(_oos_for_stress(panel, universe, cost, float(m), dates, splits, cands)[0]) for m in (2, 5)}
+    stress = {m: _sharpe_ann(_oos_for_stress(
+        panel, universe, cost, float(m), dates, splits, cands, selected_backend)[0]) for m in (2, 5)}
     verdict = "PASS" if (sharpe > SHARPE_MIN and dsr > DSR_MIN and stress[2] > STRESS_MIN
                          and stress[5] > STRESS_X5_FLOOR and max_dd > DD_MAX) else "FAIL"
-    out = {"verdict": verdict, "seed": seed, "sharpe_oos": sharpe, "dsr": dsr,
+    out = {"verdict": verdict, "backend": selected_backend, "seed": seed,
+           "sharpe_oos": sharpe, "dsr": dsr,
            "stress_x2": stress[2], "stress_x5": stress[5], "max_dd": max_dd,
            "n_oos": len(oos), "picks": picks, "candidates": cands}
     for k, v in out.items():

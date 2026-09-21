@@ -81,23 +81,44 @@ fn run() -> Result<(), String> {
     }
     let p = |k: &str, d: &str| arg(&args, k, d);
     let cfg = Cfg {
-        lookback: p("lookback", "20").parse().map_err(|e| format!("lookback: {e}"))?,
+        lookback: p("lookback", "20")
+            .parse()
+            .map_err(|e| format!("lookback: {e}"))?,
         fee_bps: p("fee", "2.0").parse().map_err(|e| format!("fee: {e}"))?,
-        spread_bps: p("spread", "5.0").parse().map_err(|e| format!("spread: {e}"))?,
-        impact_k: p("impact", "50.0").parse().map_err(|e| format!("impact: {e}"))?,
-        stress_m: p("stress", "1.0").parse().map_err(|e| format!("stress: {e}"))?,
-        cash: p("cash", "1000000").parse().map_err(|e| format!("cash: {e}"))?,
-        min_trade: p("min-trade", "25.0").parse().map_err(|e| format!("min-trade: {e}"))?,
-        ref_vol: p("ref-vol", "0.01").parse().map_err(|e| format!("ref-vol: {e}"))?,
-        base_qty: p("base-qty", "100.0").parse().map_err(|e| format!("base-qty: {e}"))?,
-        max_pos: p("max-pos", "1000.0").parse().map_err(|e| format!("max-pos: {e}"))?,
-        vol_window: p("vol-window", "20").parse().map_err(|e| format!("vol-window: {e}"))?,
+        spread_bps: p("spread", "5.0")
+            .parse()
+            .map_err(|e| format!("spread: {e}"))?,
+        impact_k: p("impact", "50.0")
+            .parse()
+            .map_err(|e| format!("impact: {e}"))?,
+        stress_m: p("stress", "1.0")
+            .parse()
+            .map_err(|e| format!("stress: {e}"))?,
+        cash: p("cash", "1000000")
+            .parse()
+            .map_err(|e| format!("cash: {e}"))?,
+        min_trade: p("min-trade", "25.0")
+            .parse()
+            .map_err(|e| format!("min-trade: {e}"))?,
+        ref_vol: p("ref-vol", "0.01")
+            .parse()
+            .map_err(|e| format!("ref-vol: {e}"))?,
+        base_qty: p("base-qty", "100.0")
+            .parse()
+            .map_err(|e| format!("base-qty: {e}"))?,
+        max_pos: p("max-pos", "1000.0")
+            .parse()
+            .map_err(|e| format!("max-pos: {e}"))?,
+        vol_window: p("vol-window", "20")
+            .parse()
+            .map_err(|e| format!("vol-window: {e}"))?,
     };
     let panel_path = p("panel", "panel.csv");
     let members_path = p("members", "members.csv");
     let out_path = p("out", "equity.csv");
 
-    let panel_text = fs::read_to_string(&panel_path).map_err(|e| format!("read {panel_path}: {e}"))?;
+    let panel_text =
+        fs::read_to_string(&panel_path).map_err(|e| format!("read {panel_path}: {e}"))?;
     let mut series: BTreeMap<String, Vec<Bar>> = BTreeMap::new();
     let mut dates_set = BTreeSet::new();
     for (ln, line) in panel_text.lines().enumerate() {
@@ -127,7 +148,10 @@ fn run() -> Result<(), String> {
         if f.len() != 2 {
             return Err(format!("members line {ln}: expect 2 cols"));
         }
-        members.entry(f[0].to_string()).or_default().insert(f[1].to_string());
+        members
+            .entry(f[0].to_string())
+            .or_default()
+            .insert(f[1].to_string());
     }
 
     let syms: Vec<String> = series.keys().cloned().collect();
@@ -185,7 +209,11 @@ fn run() -> Result<(), String> {
             }
             px_today.insert(s.as_str(), px);
         }
-        let eq = cash + syms.iter().map(|s| pos[s.as_str()] * px_today.get(s.as_str()).copied().unwrap_or(0.0)).sum::<f64>();
+        let eq = cash
+            + syms
+                .iter()
+                .map(|s| pos[s.as_str()] * px_today.get(s.as_str()).copied().unwrap_or(0.0))
+                .sum::<f64>();
         curve.push((t.clone(), eq));
     }
 

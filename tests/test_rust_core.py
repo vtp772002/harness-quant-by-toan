@@ -53,3 +53,25 @@ def test_conformance_stress():
 
 def test_rust_binary_path_documented():
     assert Path("crates/quant-core/Cargo.toml").exists()
+
+
+def test_rust_gate_matches_python_reference():
+    import math
+    from evals.gate import run_gate
+    _require_bin()
+    py = run_gate(42, backend="python")
+    rs = run_gate(42, backend="rust")
+    assert rs["backend"] == "rust"
+    assert rs["verdict"] == py["verdict"] == "PASS"
+    assert rs["picks"] == py["picks"]
+    for key in ("sharpe_oos", "dsr", "stress_x2", "stress_x5", "max_dd"):
+        assert math.isclose(rs[key], py[key], rel_tol=1e-9, abs_tol=1e-9), key
+
+
+def test_auto_fallback_and_explicit_rust_fail_closed(monkeypatch):
+    import evals.rust_core as rust_core
+    from evals.gate import _resolve_backend
+    monkeypatch.setattr(rust_core, "binary_path", lambda: None)
+    assert _resolve_backend("auto") == "python"
+    with pytest.raises(FileNotFoundError):
+        _resolve_backend("rust")

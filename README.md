@@ -25,7 +25,7 @@ Design reference: [OpenAI — Harness engineering: leveraging Codex in an agent-
 7. [Command cheatsheet](#7-command-cheatsheet)
 8. [Invariants (CI blocks on violation)](#8-invariants-ci-blocks-on-violation)
 9. [Agent layer: agents propose, gate disposes](#9-agent-layer-agents-propose-gate-disposes)
-10. [Rust core (optional speedup)](#10-rust-core-optional-speedup)
+10. [Rust core backtest backend](#10-rust-core-backtest-backend)
 11. [Harness health scorecard](#11-harness-health-scorecard)
 12. [Calibration numbers](#12-calibration-numbers)
 13. [Extending](#13-extending)
@@ -164,7 +164,7 @@ src/utils/                 seeded RNG, structured logging, map-with-concurrency
 src/wiring.py              Composition root (seeded demo run)
 evals/                     purged_cv · deflated_sharpe (hand-rolled, no scipy)
                            gate (promotion authority) · rust_core (bridge)
-crates/quant-core/         Rust hot loop (std-only, CSV boundary), see section 9
+crates/quant-core/         Rust hot loop (std-only, CSV boundary), see section 10
 linters/                   layering · no_lookahead · determinism · taste (blocking)
 tests/                     structure · honest_eval · agent_layer · rust_core (conformance)
 scripts/                   install-quant-harness · worktree-boot · run-backtest · run-eval
@@ -229,10 +229,11 @@ real provider, secrets policy, token budget, LangGraph, live-fire validation.
 
 ---
 
-## 10. Rust core (optional speedup)
+## 10. Rust core backtest backend
 
 `crates/quant-core`: ports exactly the `panel_backtest` hot loop, std-only with zero
-dependencies, CSV boundary (`panel.csv` + `members.csv` → `equity.csv`).
+dependencies, CSV boundary (`panel.csv` + `members.csv` → `equity.csv`). The CLI
+evaluation path uses it when the release binary is available.
 Python keeps orchestration (gate, selection, DSR) — Rust **never replaces the reference**.
 
 | lookback | Python | Rust | speedup | equity diff |
@@ -241,8 +242,9 @@ Python keeps orchestration (gate, selection, DSR) — Rust **never replaces the 
 | 10 | 154ms | 28ms | 5.4x | 2.3e-10 |
 | 20 | 151ms | 26ms | 5.9x | 2.3e-10 |
 
-Promotion rule: conformance green + Python panel loop > 30s (currently ~0.5s).
-Without the binary, conformance tests self-skip and the Python gate runs normally.
+Python remains the reference oracle and fallback. `run-eval.py --backend python`
+forces the oracle; `--backend rust` requires the release binary; `--backend auto`
+(the default) selects Rust when available and otherwise falls back to Python.
 
 ```bash
 cargo build --release -p quant-core
@@ -257,8 +259,8 @@ PYTHONPATH=. python scripts/bench-rust.py
 PYTHONPATH=. python scripts/evaluate-quant-harness.py --seed 42
 ```
 
-Versioned JSON output (`quant-scorecard-v1`), 9 cases:
-authority-entry · docs-map · linters · tests · rust-control-plane · gate · rust-conformance ·
+Versioned JSON output (`quant-scorecard-v1`), 10 cases:
+authority-entry · docs-map · linters · tests · rust-control-plane · rust-core-build · gate · rust-conformance ·
 evidence (manifest) · docs-fresh. Any blocking fail = no merge.
 
 ---

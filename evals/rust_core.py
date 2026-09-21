@@ -1,6 +1,7 @@
-"""Rust acceleration backend — OPTIONAL. Reference van la Python (gate dung Python).
-Quy tac promote: conformance (equity khop 1e-9) + bench nhanh hon dang ke + deterministic.
-Hien tai: dev/bench/conformance only, chua thay gate.
+"""Rust acceleration backend for the panel backtest.
+
+Python remains the reference implementation; this module owns the typed CSV
+boundary and subprocess contract for the Rust numerical engine.
 """
 from __future__ import annotations
 
@@ -23,19 +24,23 @@ def dump_inputs(panel: pd.DataFrame, universe, d: Path) -> None:
 
 
 def run_rust_backtest(panel, universe, lookback: int, cost, stress_m: float = 1.0,
-                      d: Path | None = None) -> tuple[pd.DataFrame, dict]:
+                      initial_cash: float = 1_000_000.0, ref_vol: float = 0.01,
+                      min_trade: float = 25.0, d: Path | None = None) -> tuple[pd.DataFrame, dict]:
     import tempfile
     binp = binary_path()
     if binp is None:
         raise FileNotFoundError("quant-core binary chua build: cargo build --release -p quant-core")
     work = d or Path(tempfile.mkdtemp())
     work.mkdir(parents=True, exist_ok=True)
-    dump_inputs(panel, universe, work)
+    if not (work / "panel.csv").exists() or not (work / "members.csv").exists():
+        dump_inputs(panel, universe, work)
     r = subprocess.run(
         [str(binp), "--panel", str(work / "panel.csv"), "--members", str(work / "members.csv"),
          "--lookback", str(lookback), "--fee", str(cost.cfg.fee_bps),
          "--spread", str(cost.cfg.base_spread_bps), "--impact", str(cost.cfg.impact_k),
-         "--stress", str(stress_m), "--out", str(work / "equity.csv")],
+         "--stress", str(stress_m), "--cash", str(initial_cash),
+         "--ref-vol", str(ref_vol), "--min-trade", str(min_trade),
+         "--out", str(work / "equity.csv")],
         capture_output=True, text=True, check=True)
     meta = {}
     for tok in r.stdout.strip().split():

@@ -22,7 +22,13 @@ parse duoc bang mat thuong. Zero dependencies (std only) — khong serde, khong 
 maxdiff 2.3e-10 tren equity ~1e6 (tuong doi ~2e-16) — lech last-ulp tu thuat toan std cua pandas.
 Conformance test khoa o rtol=1e-9.
 
-## Quy tac promote (chua dat — Rust hien la dev/bench only)
-1. Conformance xanh tren moi seed CI (hien chi seed 42).
-2. Gate end-to-end dung Rust vuot trigger: panel loop Python > 30s (hien ~0.5s).
-3. Reference mai mai la Python — Rust khong bao gio thay gate Python, chi lam backend tang toc.
+## Promotion status
+
+Rust is now the preferred backend for the CLI gate when its release binary is
+available. Python remains the permanent reference and fallback.
+
+1. `run-eval.py --backend rust` requires the release binary and reports the
+   selected backend in JSON.
+2. `--backend auto` selects Rust when available and falls back to Python.
+3. Conformance compares Rust and Python equity, fills, turnover, and gate
+   metrics; the Python implementation is not deleted.

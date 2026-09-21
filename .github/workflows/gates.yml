@@ -9,6 +9,7 @@ jobs:
         with: {python-version: "3.11"}
       - uses: dtolnay/rust-toolchain@stable
       - run: pip install -e ".[dev]" 2>/dev/null || pip install pydantic pandas numpy duckdb pyarrow pytest
+      - run: cargo build --release --manifest-path crates/quant-core/Cargo.toml
       - run: bash scripts/quant-harness.sh doctor
       - run: bash scripts/quant-harness.sh check --seed 42
   full-eval: # non-blocking: walk-forward + stress (nightly hoặc label full-eval)

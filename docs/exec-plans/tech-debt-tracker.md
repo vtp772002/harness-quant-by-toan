@@ -1,7 +1,8 @@
 # Tech Debt Tracker — append-only, garbage-collected
 - [x] 2026-09-13: regime cost model + stress x2/x5 (xong trong honest-eval-stack)
-- [x] 2026-09-13: rust hot-loop core + conformance (5-6x, maxdiff 2.3e-10) — dev/bench only, chua promote
-- [ ] 2026-09-13: promote rust backend vao gate khi panel loop Python > 30s (hien ~0.5s)
+- [x] 2026-09-13: rust hot-loop core + conformance (5-6x, maxdiff 2.3e-10)
+- [x] 2026-09-21: promote rust backend vao CLI gate with Python oracle; keep
+  Python reference for tests and fallback.
 - [ ] 2026-09-13: slippage stochastic seeded (owner: agent, est: 1 PR)
 - [ ] 2026-09-13: duckdb prod repo thay inject-df (owner: agent)
 - [ ] 2026-09-13: selection stability (ensemble/thu hep candidates) — gate hien nhay voi seed (5/7 PASS)
