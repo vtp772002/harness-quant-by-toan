@@ -71,16 +71,17 @@ This checks that the repository root and required contract files are present.
 ### 2. Create a reproducible run
 
 ```bash
-scripts/quant-harness.sh boot --seed 42
+scripts/quant-harness.sh boot --seed 42 --run-id smoke-42
 ```
 
 This creates a run manifest containing the run ID, seed, Git SHA, harness
 version, and configuration. The run-local files live under `runs/<run-id>/`.
+Use the same run ID for the commands that follow.
 
 ### 3. Run the complete contract
 
 ```bash
-scripts/quant-harness.sh check --seed 42
+scripts/quant-harness.sh check --seed 42 --run-id smoke-42
 ```
 
 This is the canonical health command. It builds the Rust numerical core, tests
@@ -91,25 +92,34 @@ scorecard. A failing blocking stage stops the command.
 ### 4. Run only the research path
 
 ```bash
-PYTHONPATH=. python scripts/run-backtest.py --seed 42
-PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
+QUANT_RUN_ID=smoke-42 PYTHONPATH=. python scripts/run-backtest.py --seed 42
+QUANT_RUN_ID=smoke-42 PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
 ```
 
-The first command runs the deterministic demo backtest. The second command
-returns JSON with the gate verdict and metrics.
+The first command is a small deterministic smoke backtest. The second command
+is the promotion gate on a separate 756-day synthetic panel. Their Sharpe
+values are not expected to match: they answer different questions.
+
+Query only this run instead of the historical `runs/local` directory:
+
+```bash
+PYTHONPATH=. python scripts/query-metrics.py --run smoke-42 --metric sharpe
+PYTHONPATH=. python scripts/query-logs.py --run smoke-42 --filter level=ERROR
+```
 
 On Windows, use the control-plane adapter:
 
 ```powershell
 .\scripts\quant-harness.ps1 doctor
-.\scripts\quant-harness.ps1 boot --seed 42 --run-id local
-.\scripts\quant-harness.ps1 check --seed 42
+.\scripts\quant-harness.ps1 boot --seed 42 --run-id smoke-42
+.\scripts\quant-harness.ps1 check --seed 42 --run-id smoke-42
 ```
 
 For Python commands in PowerShell:
 
 ```powershell
 $env:PYTHONPATH = "."
+$env:QUANT_RUN_ID = "smoke-42"
 python scripts/run-backtest.py --seed 42
 python scripts/run-eval.py --seed 42 --backend auto
 ```
@@ -136,26 +146,38 @@ It does not install credentials, broker integrations, live trading, or product
 policy. Cargo is required on the target machine because the installer builds a
 platform-specific binary locally.
 
-Preview or intentionally replace files as follows:
+Choose exactly one of the following commands. Do not paste the whole block as
+one shell script:
 
 ```bash
 # Preview without writing files
-curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
-  | bash -s -- --dry-run --target "$PWD"
+( set -o pipefail; curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
+  | bash -s -- --dry-run --target "$PWD" )
 
-# Pin the source ref for a reproducible bootstrap (replace the placeholder)
-curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
-  | bash -s -- --yes --ref "COMMIT_SHA_OR_TAG" --target "$PWD"
+# Normal merge install; existing managed files are preserved
+( set -o pipefail; curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
+  | bash -s -- --yes --target "$PWD" )
 
 # Replace managed files intentionally
-curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
-  | bash -s -- --yes --override --target "$PWD"
+( set -o pipefail; curl -fsSL https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh \
+  | bash -s -- --yes --override --target "$PWD" )
 ```
 
-For non-interactive use, `--yes` is required. Review the installer and pin a
-trusted ref before using it in automation. Release checksums are a follow-up
-workstream; the current installer builds source locally rather than fetching a
-prebuilt binary.
+For non-interactive use, `--yes` is required. To pin the source, pass
+`--ref <real-commit-or-tag>`; do not run a placeholder literally. The
+repository currently has no published release tag, so use a real commit SHA or
+`main`. Release checksums are a follow-up workstream; the current installer
+builds source locally rather than fetching a prebuilt binary.
+
+The installer installs only the control-plane payload listed in
+`scripts/quant-harness-files.txt`: shell/PowerShell adapters, Rust CLI source,
+and the installer itself. It does not install Python dependencies, research
+code, docs, credentials, or market data. The target repository still needs the
+contract files required by `doctor`.
+
+In merge mode, `preserve <path>` means that the target already has that managed
+file; it is a successful no-op. In dry-run mode, `preserve` means the same thing
+but no files are written.
 
 ## Research workflow
 
@@ -193,20 +215,20 @@ belong in `src/providers/`.
 ### 3. Run the deterministic smoke test
 
 ```bash
-PYTHONPATH=. python scripts/run-backtest.py --seed 42
+QUANT_RUN_ID=smoke-42 PYTHONPATH=. python scripts/run-backtest.py --seed 42
 ```
 
 Inspect the emitted metrics and the run artifacts. Query them with:
 
 ```bash
-PYTHONPATH=. python scripts/query-metrics.py --metric sharpe
-PYTHONPATH=. python scripts/query-logs.py --filter level=ERROR
+PYTHONPATH=. python scripts/query-metrics.py --run smoke-42 --metric sharpe
+PYTHONPATH=. python scripts/query-logs.py --run smoke-42 --filter level=ERROR
 ```
 
 ### 4. Run the promotion gate
 
 ```bash
-PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
+QUANT_RUN_ID=gate-42 PYTHONPATH=. python scripts/run-eval.py --seed 42 --backend auto
 ```
 
 Do not promote based on an in-sample result or a single attractive chart. Read
@@ -333,9 +355,9 @@ traces.jsonl    provider and execution traces where applicable
 | Command | Purpose |
 |---|---|
 | `quant-harness.sh doctor` | Validate repository contract and required paths |
-| `quant-harness.sh boot --seed 42` | Create a reproducible run manifest |
-| `quant-harness.sh check --seed 42` | Run the complete blocking contract |
-| `python scripts/run-backtest.py --seed 42` | Run the deterministic demo backtest |
+| `quant-harness.sh boot --seed 42 --run-id ID` | Create a reproducible run manifest |
+| `quant-harness.sh check --seed 42 --run-id ID` | Run the complete blocking contract |
+| `QUANT_RUN_ID=ID python scripts/run-backtest.py --seed 42` | Run the deterministic smoke backtest |
 | `python scripts/run-eval.py --backend auto` | Run the promotion gate |
 | `python scripts/evaluate-quant-harness.py` | Run the versioned harness scorecard |
 | `python scripts/bench-rust.py` | Compare Python and Rust backends |

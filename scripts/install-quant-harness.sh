@@ -46,6 +46,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
+case "$REF" in
+  *COMMIT_SHA*|*YOUR_*|\<*\>)
+    fail "--ref must be a real branch, tag, or commit; replace the placeholder"
+    ;;
+esac
 TARGET=$(cd "$TARGET" 2>/dev/null && pwd) || fail "target is not a directory: $TARGET"
 SOURCE_BASE=${SOURCE_BASE%/}
 SOURCE="$SOURCE_BASE"
@@ -98,7 +103,11 @@ done < "$MANIFEST"
 
 BIN="$TARGET/scripts/bin/quant-harness"
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  echo "install release binary: $BIN"
+  if [[ "$MODE" == "merge" && -x "$BIN" ]]; then
+    echo "preserve $BIN"
+  else
+    echo "install release binary: $BIN"
+  fi
   exit 0
 fi
 

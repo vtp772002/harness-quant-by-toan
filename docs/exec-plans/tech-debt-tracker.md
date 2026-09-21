@@ -30,3 +30,5 @@
 - [ ] 2026-09-21: publish signed/versioned release artifacts and checksum
   manifests for curl bootstrap; the current installer builds Rust source from a
   pinned raw ref
+- [x] 2026-09-21: clarify installer dry-run/placeholder errors and propagate
+  explicit run IDs through the Rust validation stages (decision `0006`)

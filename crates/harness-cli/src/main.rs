@@ -137,12 +137,13 @@ fn python_command() -> &'static str {
     "python"
 }
 
-fn stage(root: &Path, name: &str, program: &str, args: &[&str]) -> bool {
+fn stage(root: &Path, run_id: &str, name: &str, program: &str, args: &[&str]) -> bool {
     let status = Command::new(program)
         .args(args)
         .current_dir(root)
         .env("PYTHONPATH", ".")
         .env("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        .env("QUANT_RUN_ID", run_id)
         .status();
     let passed = status.map(|s| s.success()).unwrap_or(false);
     println!(
@@ -159,6 +160,15 @@ fn check(root: &Path, options: &HashMap<String, String>) -> bool {
     let seed = options.get("seed").map(String::as_str).unwrap_or("42");
     if seed.parse::<u64>().is_err() {
         eprintln!("seed must be an unsigned integer");
+        return false;
+    }
+    let run_id = options
+        .get("run-id")
+        .cloned()
+        .or_else(|| env::var("QUANT_RUN_ID").ok())
+        .unwrap_or_else(|| "local".to_string());
+    if run_id.is_empty() || run_id.contains('/') || run_id.contains('\\') || run_id.contains("..") {
+        eprintln!("run-id must be a non-empty single directory name");
         return false;
     }
     let python = python_command();
@@ -184,6 +194,7 @@ fn check(root: &Path, options: &HashMap<String, String>) -> bool {
     ];
     let core_ok = stage(
         root,
+        &run_id,
         "rust-core-build",
         "cargo",
         &[
@@ -195,6 +206,7 @@ fn check(root: &Path, options: &HashMap<String, String>) -> bool {
     );
     let rust_ok = stage(
         root,
+        &run_id,
         "rust-tests",
         "cargo",
         &["test", "--manifest-path", "crates/harness-cli/Cargo.toml"],
@@ -203,7 +215,7 @@ fn check(root: &Path, options: &HashMap<String, String>) -> bool {
         && rust_ok
         && stages
             .iter()
-            .all(|(name, args)| stage(root, name, python, args))
+            .all(|(name, args)| stage(root, &run_id, name, python, args))
 }
 
 fn usage() {
@@ -264,6 +276,17 @@ mod tests {
     fn rejects_missing_option_value() {
         let args = vec!["boot".to_string(), "--seed".to_string()];
         assert!(parse_options(&args).is_err());
+    }
+
+    #[test]
+    fn parses_run_id_for_check() {
+        let args = vec![
+            "check".to_string(),
+            "--run-id".to_string(),
+            "run-42".to_string(),
+        ];
+        let (_, options) = parse_options(&args).expect("valid options");
+        assert_eq!(options.get("run-id"), Some(&"run-42".to_string()));
     }
 
     #[test]

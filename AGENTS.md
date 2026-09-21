@@ -72,7 +72,8 @@ These principles are enforced mechanically where possible:
    `docs/exec-plans/active/<name>.md` before implementation.
 3. Implement within the layer contract and preserve the Python reference oracle
    when changing Rust numerical code.
-4. Run `scripts/quant-harness.sh check --seed 42` as the canonical validation.
+4. Run `scripts/quant-harness.sh check --seed 42 --run-id check-42` as the
+   canonical validation; keep the run ID when querying evidence.
 5. For focused checks, run `python linters/run_all.py` and
    `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. pytest tests/ evals/ -q -p no:cacheprovider`.
 6. Review the diff, run `python scripts/doc-garden.py --scan`, and keep the PR
