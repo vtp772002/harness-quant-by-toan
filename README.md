@@ -179,6 +179,13 @@ In merge mode, `preserve <path>` means that the target already has that managed
 file; it is a successful no-op. In dry-run mode, `preserve` means the same thing
 but no files are written.
 
+When stdout and stderr are terminals, the installer shows a colored four-stage
+progress UI with a spinner while downloading files and compiling Rust. It
+automatically falls back to plain, log-friendly output in CI or redirected
+shells. Set `NO_COLOR=1` or `HARNESS_INSTALLER_UI=never` to disable the UI; set
+`HARNESS_INSTALLER_UI=always` only when the output is a terminal emulator that
+supports ANSI control sequences.
+
 ## Research workflow
 
 Use this loop for every hypothesis. The gate is a promotion authority, not a

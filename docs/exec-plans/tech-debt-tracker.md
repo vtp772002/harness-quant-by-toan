@@ -32,3 +32,5 @@
   pinned raw ref
 - [x] 2026-09-21: clarify installer dry-run/placeholder errors and propagate
   explicit run IDs through the Rust validation stages (decision `0006`)
+- [x] 2026-09-22: add TTY-aware curl installer progress UI with plain-output
+  fallback (decision `0007`)
