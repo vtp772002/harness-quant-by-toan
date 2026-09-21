@@ -1,5 +1,7 @@
 # harness-quant-by-toan — Agent-first harness for AI quant research
 
+Version `0.2.0` · License [MIT](LICENSE)
+
 > Humans steer, agents execute. This harness doesn't write strategies for you —
 > it forces every strategy (human- or agent-proposed) to **stay honest**:
 > point-in-time, net of costs, statistically guarded against overfitting,
@@ -8,34 +10,39 @@
 Every line of code, test, doc, and eval in this repo is agent-written via
 prompts → short PRs → self-review (Ralph Wiggum Loop) → merge.
 Humans only do three things: design environments, state intent, build feedback loops.
-Root philosophy: [OpenAI Harness Engineering](https://openai.com/index/harness-engineering/) (02/2026).
+Design reference: [OpenAI — Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/) (February 11, 2026).
 
 ---
 
 ## Contents
 
 1. [Quickstart](#1-quickstart)
-2. [Standard research loop](#2-standard-research-loop)
-3. [Reading the gate verdict](#3-reading-the-gate-verdict)
-4. [Architecture](#4-architecture)
-5. [Repo tour](#5-repo-tour)
-6. [Command cheatsheet](#6-command-cheatsheet)
-7. [Invariants (CI blocks on violation)](#7-invariants-ci-blocks-on-violation)
-8. [Agent layer: agents propose, gate disposes](#8-agent-layer-agents-propose-gate-disposes)
-9. [Rust core (optional speedup)](#9-rust-core-optional-speedup)
-10. [Harness health scorecard](#10-harness-health-scorecard)
-11. [Calibration numbers](#11-calibration-numbers)
-12. [Extending](#12-extending)
-13. [Attribution](#13-attribution)
+2. [Install into another quant repository](#2-install-into-another-quant-repository)
+3. [Standard research loop](#3-standard-research-loop)
+4. [Reading the gate verdict](#4-reading-the-gate-verdict)
+5. [Architecture](#5-architecture)
+6. [Repo tour](#6-repo-tour)
+7. [Command cheatsheet](#7-command-cheatsheet)
+8. [Invariants (CI blocks on violation)](#8-invariants-ci-blocks-on-violation)
+9. [Agent layer: agents propose, gate disposes](#9-agent-layer-agents-propose-gate-disposes)
+10. [Rust core (optional speedup)](#10-rust-core-optional-speedup)
+11. [Harness health scorecard](#11-harness-health-scorecard)
+12. [Calibration numbers](#12-calibration-numbers)
+13. [Extending](#13-extending)
+14. [Attribution](#14-attribution)
 
 ---
 
 ## 1. Quickstart
 
-Requirements: Python ≥ 3.11, Rust toolchain (only for `crates/quant-core`).
+Requirements: Python ≥ 3.11, Rust toolchain (for `crates/harness-cli` and optional
+`crates/quant-core`).
 
 ```bash
 bash scripts/worktree-boot.sh                      # boot isolated per-worktree env
+scripts/quant-harness.sh doctor                    # validate repository contract
+scripts/quant-harness.sh boot --seed 42             # write runs/<id>/manifest.json
+scripts/quant-harness.sh check --seed 42            # Rust + Python full contract
 PYTHONPATH=. python scripts/run-backtest.py --seed 42   # smoke test (~1s)
 PYTHONPATH=. python scripts/run-eval.py --seed 42       # honest-eval gate → PASS/FAIL
 python linters/run_all.py                          # 4 linters (blocking)
@@ -47,11 +54,38 @@ PYTHONPATH=. python scripts/evaluate-quant-harness.py   # behavior scorecard
 > `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` works around an old `httpx` plugin broken on
 > Python 3.13 (local machine issue, not the harness).
 
-Done right, you get: gate `PASS`, 4/4 linters green, 25 pytest passed, 8/8 scorecard.
+The Rust control plane is the canonical cross-platform entrypoint. Bash and
+PowerShell only adapt invocation; Python remains the reference implementation
+for quant calculations and evaluation. The equivalent Windows commands are:
+
+```powershell
+.\scripts\quant-harness.ps1 doctor
+.\scripts\quant-harness.ps1 boot --seed 42 --run-id local
+.\scripts\quant-harness.ps1 check --seed 42
+```
+
+Done right, you get: gate `PASS`, 4/4 linters green, 25 pytest passed, 9/9 scorecard.
 
 ---
 
-## 2. Standard research loop
+## 2. Install into another quant repository
+
+After this repository is published, bootstrap the control-plane into a target
+repository with merge-safe defaults:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/vtp772002/harness-quant-by-toan/main/scripts/install-quant-harness.sh" \
+  | bash -s -- --yes --target "$PWD"
+```
+
+Preview with `--dry-run`; use `--override` only when replacing managed files is
+intentional. The installer downloads the Rust control-plane, builds it locally,
+and installs `scripts/bin/quant-harness`. It does not install credentials,
+broker integrations, live trading, or product policy.
+
+---
+
+## 3. Standard research loop
 
 1. **Write a 1-page spec** per `docs/product-specs/quant-research-loop.md`:
    falsifiable hypothesis, universe, horizon, costs, risk, numeric kill-criteria.
@@ -68,7 +102,7 @@ otherwise, as far as the agent is concerned, it doesn't exist.
 
 ---
 
-## 3. Reading the gate verdict
+## 4. Reading the gate verdict
 
 `scripts/run-eval.py` returns JSON: `verdict`, `sharpe_oos`, `dsr`, `stress_x2/x5`,
 `max_dd`, `picks` (lookback selected per fold), `candidates`.
@@ -94,7 +128,7 @@ per-fold train lookback selection → OOS + DSR + stress. Deterministic per seed
 
 ---
 
-## 4. Architecture
+## 5. Architecture
 
 Each domain (`data`, `alpha`, `backtest`, `risk`, `portfolio`) may only depend **forward**:
 
@@ -114,7 +148,7 @@ risk in code (breaches `raise`, never warn).
 
 ---
 
-## 5. Repo tour
+## 6. Repo tour
 
 ```
 AGENTS.md                  Agent entrypoint (~80 lines, a table of contents, not an encyclopedia)
@@ -133,7 +167,8 @@ evals/                     purged_cv · deflated_sharpe (hand-rolled, no scipy)
 crates/quant-core/         Rust hot loop (std-only, CSV boundary), see section 9
 linters/                   layering · no_lookahead · determinism · taste (blocking)
 tests/                     structure · honest_eval · agent_layer · rust_core (conformance)
-scripts/                   worktree-boot · run-backtest · run-eval · query-logs/metrics
+scripts/                   install-quant-harness · worktree-boot · run-backtest · run-eval
+                           query-logs/metrics
                            bench-eval · bench-rust · doc-garden · gc-scan · evaluate-quant-harness
 docs/                      system of record: design-docs · product-specs · exec-plans
                            decisions (ADR) · EVALUATION · QUALITY_SCORE · RISK_LIMITS · ...
@@ -144,7 +179,7 @@ docs/                      system of record: design-docs · product-specs · exe
 
 ---
 
-## 6. Command cheatsheet
+## 7. Command cheatsheet
 
 ```bash
 PYTHONPATH=. python scripts/query-metrics.py --metric sharpe      # Sharpe across runs
@@ -161,7 +196,7 @@ Each worktree gets its own observability stack: `runs/<id>/logs.jsonl`, `metrics
 
 ---
 
-## 7. Invariants (CI blocks on violation)
+## 8. Invariants (CI blocks on violation)
 
 - **No lookahead**: features may only use `ts ≤ t`. Banned: `.shift(-`, `future`, `lead(`, non-asof joins.
 - **Determinism**: all randomness via `seeded_rng(seed)`; banned `random.*`, `time.time()`,
@@ -174,7 +209,7 @@ Each worktree gets its own observability stack: `runs/<id>/logs.jsonl`, `metrics
 
 ---
 
-## 8. Agent layer: agents propose, gate disposes
+## 9. Agent layer: agents propose, gate disposes
 
 Four-step pipeline in `src/domains/alpha/agents.py`: Indicator → Pattern → Trend → Decision.
 Sequential, deterministic, 100% offline.
@@ -194,7 +229,7 @@ real provider, secrets policy, token budget, LangGraph, live-fire validation.
 
 ---
 
-## 9. Rust core (optional speedup)
+## 10. Rust core (optional speedup)
 
 `crates/quant-core`: ports exactly the `panel_backtest` hot loop, std-only with zero
 dependencies, CSV boundary (`panel.csv` + `members.csv` → `equity.csv`).
@@ -216,19 +251,19 @@ PYTHONPATH=. python scripts/bench-rust.py
 
 ---
 
-## 10. Harness health scorecard
+## 11. Harness health scorecard
 
 ```bash
 PYTHONPATH=. python scripts/evaluate-quant-harness.py --seed 42
 ```
 
-Versioned JSON output (`quant-scorecard-v1`), 8 cases:
-authority-entry · docs-map · linters · tests · gate · rust-conformance ·
+Versioned JSON output (`quant-scorecard-v1`), 9 cases:
+authority-entry · docs-map · linters · tests · rust-control-plane · gate · rust-conformance ·
 evidence (manifest) · docs-fresh. Any blocking fail = no merge.
 
 ---
 
-## 11. Calibration numbers
+## 12. Calibration numbers
 
 The synthetic market (AR(1) φ=0.3 + drift, 4 symbols with list/delist, one 2:1 split) —
 a PASS here proves **the plumbing is correct, not that the alpha is real**.
@@ -245,7 +280,7 @@ blocking x5 stress killed even a 2.08-Sharpe strategy (downgraded to information
 
 ---
 
-## 12. Extending
+## 13. Extending
 
 Prioritized tech-debt (`docs/exec-plans/tech-debt-tracker.md`):
 real (survivorship-clean) data vendor · seeded stochastic slippage · duckdb prod repo ·
@@ -254,15 +289,16 @@ Harness improvement process: `improve-harness` skill (baseline-to-rerun evidence
 
 ---
 
-## 13. Attribution
+## 14. Attribution
 
-- OpenAI Harness Engineering (02/2026) — agent-first philosophy, legibility, garbage collection.
-- [QuantHarness](https://github.com/Y-Research-SBU/QuantHarness) (MIT) — 4-agent architecture
-  (idea adopted, fully rewritten, no code copied).
-- [harness-by-victoria](https://github.com/vtp772002/harness-by-victoria) (MIT) —
-  decisions/skills/scorecard protocol (idea adopted, text rewritten).
+- [OpenAI — Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/)
+  — source for the agent-first operating model: humans steer, agents execute;
+  repository knowledge as the system of record; agent legibility; mechanically
+  enforced invariants; feedback loops; and entropy cleanup.
+- This repository is an independent quantitative-research implementation. The
+  OpenAI article is a design reference, not a code dependency or endorsement.
 
 > **Disclaimer**: research harness, not financial advice.
 > A synthetic PASS guarantees nothing about real-world profit.
 
-> **License**: no LICENSE file yet (all rights reserved by default) — MIT intended.
+> **License**: MIT. See [LICENSE](LICENSE).

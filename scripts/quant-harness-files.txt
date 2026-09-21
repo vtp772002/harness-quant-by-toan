@@ -1,0 +1,8 @@
+# Quant Harness control-plane payload. Keep paths relative and repository-local.
+scripts/install-quant-harness.sh
+scripts/quant-harness-files.txt
+crates/harness-cli/Cargo.toml
+crates/harness-cli/Cargo.lock
+crates/harness-cli/src/main.rs
+scripts/quant-harness.sh
+scripts/quant-harness.ps1

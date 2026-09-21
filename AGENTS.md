@@ -25,7 +25,9 @@ legible + enforceable cho agent?" roi de xuat fix vao harness.
 | Reference thu vien (llms.txt) | `docs/references/` |
 | Bao mat / do tin cay | `docs/SECURITY.md`, `docs/RELIABILITY.md` |
 | Quyet dinh da chot (ADR) | `docs/decisions/` |
-| Scorecard suc khoe harness | `PYTHONPATH=. python scripts/evaluate-quant-harness.py` |
+| Scorecard suc khoe harness | `bash scripts/quant-harness.sh check --seed 42` |
+| Rust control-plane | `scripts/quant-harness.sh` / `scripts/quant-harness.ps1` |
+| Curl bootstrap | `scripts/install-quant-harness.sh` |
 | Skills (invariant, improve) | `.agents/skills/` |
 
 ## 3. Kien truc bat buoc (enforced by linters)

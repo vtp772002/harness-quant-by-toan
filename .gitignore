@@ -6,3 +6,5 @@ runs/
 *.duckdb
 .worktree-id
 target/
+scripts/bin/
+scripts/.crates*
